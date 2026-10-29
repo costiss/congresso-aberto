@@ -1,8 +1,9 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   getEcidadaniaConsultas,
   getEcidadaniaDetalhe,
   getEcidadaniaIdeias,
+  getEcidadaniaPagina,
   getEcidadaniaRelator,
 } from "@/lib/api";
 import type { EcidadaniaTipo } from "@/lib/types";
@@ -27,6 +28,16 @@ export function useEcidadaniaConsultas() {
   });
 }
 
+/** One page (100 items) of the portal's full ideas or consultations listing. */
+export function useEcidadaniaPagina(tipo: EcidadaniaTipo, pagina: number) {
+  return useQuery({
+    queryKey: ["ecidadania-pagina", tipo, pagina],
+    queryFn: () => getEcidadaniaPagina(tipo, pagina),
+    staleTime: STALE,
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function useEcidadaniaDetalhe(tipo?: EcidadaniaTipo, id?: number) {
   return useQuery({
     queryKey: ["ecidadania-detalhe", tipo, id],
@@ -45,17 +56,5 @@ export function useEcidadaniaRelator(id?: number) {
     enabled: !!id,
     staleTime: 30 * 60 * 1000,
     retry: 1,
-  });
-}
-
-/** Rapporteurs of the popular consultations, in the same order as the ids. */
-export function useEcidadaniaRelatores(ids: number[]) {
-  return useQueries({
-    queries: ids.map((id) => ({
-      queryKey: ["ecidadania-relator", id],
-      queryFn: () => getEcidadaniaRelator(id),
-      staleTime: 30 * 60 * 1000,
-      retry: 1,
-    })),
   });
 }

@@ -2,13 +2,13 @@
  * e-Cidadania adapter.
  *
  * The Senate's participation portal has no open-data API: its "most popular
- * today" lists are small JSON endpoints and the detail pages are server-
- * rendered Plone HTML. The same-origin nginx reverse proxy fronts
- * `www12.senado.leg.br/ecidadania` so the browser can read both without CORS;
- * this adapter normalises the payloads and extracts the detail fields from the
+ * today" lists are small JSON endpoints, the full listings and detail pages
+ * are server-rendered Plone HTML. The same-origin nginx reverse proxy fronts
+ * `www12.senado.leg.br/ecidadania` so the browser can read all of them without
+ * CORS; this adapter normalises the payloads and extracts the fields from the
  * page markup.
  */
-import type { EcidadaniaDetalhe, EcidadaniaItem } from "../types";
+import type { EcidadaniaDetalhe, EcidadaniaItem, EcidadaniaPagina, EcidadaniaTipo } from "../types";
 import { ECIDADANIA_BASE, SENADO_BASE } from "./config";
 import { ApiError, getJson, getText } from "./http";
 
@@ -93,6 +93,115 @@ export async function getEcidadaniaIdeias(): Promise<EcidadaniaItem[]> {
 export async function getEcidadaniaConsultas(): Promise<EcidadaniaItem[]> {
   const raw = await getJson<RawConsultaPopular[]>(`${ECIDADANIA_BASE}/restcolecaomaismateria`);
   return (raw ?? []).map(mapConsulta);
+}
+
+/* --------------------- full, paginated listings --------------------- */
+
+/** "8 de novembro de 2017" from a listing's status paragraph. */
+function dataPorExtenso(text: string): string | undefined {
+  return text.match(/(\d{1,2} de [a-zà-ú]+ de \d{4})/i)?.[1];
+}
+
+/** The last page number from the portal's pagination bar. */
+function totalDePaginas(doc: Document, pagina: number): number {
+  const ultima = doc.querySelector<HTMLAnchorElement>('a.page-link[title="último"]');
+  const daUltima = Number(/[?&]p=(\d+)/.exec(ultima?.getAttribute("href") ?? "")?.[1]);
+  if (daUltima > 0) return daUltima;
+
+  let maior = pagina;
+  for (const link of doc.querySelectorAll<HTMLAnchorElement>("ul.pagination a.page-link")) {
+    const n = Number(/[?&]p=(\d+)/.exec(link.getAttribute("href") ?? "")?.[1]);
+    if (n > maior) maior = n;
+  }
+  return maior;
+}
+
+function parseItensIdeia(doc: Document): EcidadaniaItem[] {
+  return [...doc.querySelectorAll("li.resumo-ideia")].flatMap((li) => {
+    const href = li.querySelector<HTMLAnchorElement>('a[href*="visualizacaoideia"]')?.getAttribute("href") ?? "";
+    const id = Number(/[?&]id=(\d+)/.exec(href)?.[1]);
+    const titulo = texto(li.querySelector("h4"));
+    if (!id || !titulo) return [];
+
+    const apoios = numeroBR(texto(li.querySelector(".contabilizacao")));
+    const metaTexto = texto(li.querySelector(".grafico-legenda span:not(.contabilizacao)"));
+    const meta = numeroBR(/meta de ([\d.]+)/i.exec(metaTexto)?.[1]) || META_IDEIA;
+    const barra = li.querySelector<HTMLElement>(".part-barra");
+    const situacao = texto(li.querySelector("p"));
+
+    return [
+      {
+        id,
+        tipo: "ideia" as const,
+        titulo,
+        apoios,
+        meta,
+        recentes: 0,
+        percentual: percentual(barra?.style.width, meta > 0 ? (apoios / meta) * 100 : 0),
+        prazo: dataPorExtenso(situacao),
+        aberta: /abertos?\s+até/i.test(situacao)
+          ? true
+          : /encerraram/i.test(situacao)
+            ? false
+            : undefined,
+      },
+    ];
+  });
+}
+
+function parseItensConsulta(doc: Document): EcidadaniaItem[] {
+  return [...doc.querySelectorAll("div.resumo-materia")].flatMap((el) => {
+    const href = el.querySelector<HTMLAnchorElement>('header a[href*="visualizacaomateria"]')?.getAttribute("href") ?? "";
+    const id = Number(/[?&]id=(\d+)/.exec(href)?.[1]);
+    if (!id) return [];
+
+    const identificacao = texto(el.querySelector("header a"));
+    const descricao = texto(el.querySelector("section a")) || texto(el.querySelector("section"));
+    const votos = [...el.querySelectorAll("figure header span")].map(texto);
+    const votosFavor = numeroBR(votos[0]);
+    const votosContra = numeroBR(votos[1]);
+    const totalVotos = votosFavor + votosContra;
+    const barra = el.querySelector<HTMLElement>("figure section div");
+
+    return [
+      {
+        id,
+        tipo: "consulta" as const,
+        titulo: identificacao || "Consulta pública",
+        identificacao: identificacao || undefined,
+        descricao: descricao || undefined,
+        votosFavor,
+        votosContra,
+        totalVotos,
+        recentes: 0,
+        percentual: percentual(barra?.style.width, totalVotos > 0 ? (votosFavor / totalVotos) * 100 : 0),
+        // The default listing only returns propositions still open for votes.
+        aberta: true,
+      },
+    ];
+  });
+}
+
+/**
+ * One page of the full portal listing, 100 items at a time. The ideas page
+ * (`pesquisaideia`) contains every idea ever submitted; the consultations page
+ * (`pesquisamateria`) lists the propositions currently open for voting.
+ */
+export async function getEcidadaniaPagina(
+  tipo: EcidadaniaTipo,
+  pagina = 1
+): Promise<EcidadaniaPagina> {
+  const alvo = Math.max(1, Math.trunc(pagina) || 1);
+  const caminho = tipo === "ideia" ? "pesquisaideia" : "pesquisamateria";
+  const html = await getText(`${ECIDADANIA_BASE}/${caminho}?p=${alvo}`, undefined, 25_000);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  return {
+    tipo,
+    pagina: alvo,
+    totalPaginas: totalDePaginas(doc, alvo),
+    items: tipo === "ideia" ? parseItensIdeia(doc) : parseItensConsulta(doc),
+  };
 }
 
 function parseIdeia(html: string, id: number): EcidadaniaDetalhe {

@@ -16,10 +16,12 @@ function IdeiaMeter({ item }: { item: EcidadaniaItem }) {
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
         <span className="font-medium text-green">{formatPct(pct)} da meta</span>
-        <span className="inline-flex items-center gap-1 text-fg-4">
-          <Flame className="h-3 w-3 text-orange" />
-          {formatNumber(item.recentes)} apoios nas últimas 24 h
-        </span>
+        {!!item.recentes && (
+          <span className="inline-flex items-center gap-1 text-fg-4">
+            <Flame className="h-3 w-3 text-orange" />
+            {formatNumber(item.recentes)} apoios nas últimas 24 h
+          </span>
+        )}
         {item.prazo && (
           <span className="inline-flex items-center gap-1 text-fg-5">
             <CalendarClock className="h-3 w-3" />
@@ -47,29 +49,25 @@ function ConsultaMeter({ item }: { item: EcidadaniaItem }) {
         <span className="font-medium text-green">Sim {formatNumber(item.votosFavor)}</span>
         <span className="font-medium text-red">Não {formatNumber(item.votosContra)}</span>
         <span className="text-fg-4">{formatNumber(item.totalVotos)} votos</span>
-        <span className="ml-auto inline-flex items-center gap-1 text-fg-5">
-          <Flame className="h-3 w-3 text-orange" />
-          {formatNumber(item.recentes)} nas últimas 24 h
-        </span>
+        {!!item.recentes && (
+          <span className="ml-auto inline-flex items-center gap-1 text-fg-5">
+            <Flame className="h-3 w-3 text-orange" />
+            {formatNumber(item.recentes)} nas últimas 24 h
+          </span>
+        )}
       </div>
     </>
   );
 }
 
-export function PopularCard({
+export function EcidadaniaCard({
   item,
   posicao,
   onOpen,
-  relator,
-  relatorLoading,
-  relatorError,
 }: {
   item: EcidadaniaItem;
   posicao: number;
   onOpen: (item: EcidadaniaItem) => void;
-  relator?: string | null;
-  relatorLoading?: boolean;
-  relatorError?: boolean;
 }) {
   const ideia = item.tipo === "ideia";
   const titulo = ideia ? item.titulo : item.descricao || item.titulo;
@@ -106,19 +104,9 @@ export function PopularCard({
               {item.titulo}
             </h3>
           ) : (
-            <>
-              <div className="mt-1 max-h-10 overflow-hidden transition-[max-height] duration-200 ease-out group-hover:max-h-60 group-focus-visible:max-h-60">
-                <p className="text-[11.5px] leading-relaxed text-fg-2">{item.descricao || item.titulo}</p>
-              </div>
-              {!relatorError && (
-                <p className="mt-1.5 text-[10.5px] leading-snug text-fg-4">
-                  Relator:{" "}
-                  <span className="text-fg-2">
-                    {relatorLoading ? "…" : relator || "aguardando designação"}
-                  </span>
-                </p>
-              )}
-            </>
+            <div className="mt-1 max-h-10 overflow-hidden transition-[max-height] duration-200 ease-out group-hover:max-h-60 group-focus-visible:max-h-60">
+              <p className="text-[11.5px] leading-relaxed text-fg-2">{item.descricao || item.titulo}</p>
+            </div>
           )}
         </div>
         <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-fg-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg-3" />
@@ -130,7 +118,7 @@ export function PopularCard({
   );
 }
 
-export function PopularCardSkeleton() {
+export function EcidadaniaCardSkeleton() {
   return (
     <div className="surface animate-pulse p-4" aria-hidden="true">
       <div className="flex gap-3">

@@ -63,12 +63,14 @@ Brazil map, Faustina serif figures and a timeline dock at the bottom.
   A **Pautas** tab lists every session that has an order paper in the period —
   both houses, live and past — each opening in place to its full pauta, so the
   official site is not needed to read it.
-- **Participação** (`#/participacao`) — the e-Cidadania portal's most active
-  ideas and public consultations in the last 24 hours. A switch toggles between
-  the two; each row shows support progress or the SIM/NÃO split, activity in the
-  last 24 hours, the support deadline, and the consultation's rapporteur.
-  Opening a row shows the full text, the current tally and the link to
-  participate on the official portal. Detail links are shareable:
+- **Participação** (`#/participacao`) — the complete e-Cidadania catalogue.
+  A switch opens with public consultations and then ideas, both read from the
+  portal's full, paginated listings (100 items per page). Each row shows support
+  progress or the SIM/NÃO split and the support deadline; the pagination bar
+  moves through the whole archive. A separate card keeps the 24-hour highlights.
+  Opening a row shows the full text, the current tally, the consultation's
+  rapporteur and the link to participate on the official portal. Detail links
+  are shareable, keep the list page behind them and are routable as
   `#/participacao/ideia-<id>` and `#/participacao/consulta-<id>`.
 
 Ctrl K searches deputies, senators and recent votes.
@@ -86,8 +88,8 @@ Defaults are left out of the URL.
 | `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>\|<ini>..<fim>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |
 | `#/camara`, `#/senado` | `uf`, `partido`, `q` |
 | `#/agenda` | `periodo=realizados`, `tipo=plenario\|comissoes` |
-| `#/participacao` | `aba=ideias\|consultas` |
-| `#/participacao/ideia-<id>`, `#/participacao/consulta-<id>` | `aba` (keeps the list behind the detail open) |
+| `#/participacao` | `aba=ideias\|consultas` (default `consultas`), `pagina` |
+| `#/participacao/ideia-<id>`, `#/participacao/consulta-<id>` | `aba`, `pagina` (keeps the list behind the detail open) |
 
 Example: `#/lista?casa=senado&periodo=2025&tipo=PEC&resultado=aprovada`.
 Old links such as `#/pecs` are rewritten to their list equivalent.
@@ -155,8 +157,8 @@ The API layer lives in `src/lib/api`:
 
 - `camara.ts` / `senado.ts` — adapters that normalise the two very different
   payloads into the shared model in `src/lib/types.ts`.
-- `ecidadania.ts` — normalises the portal's popular lists and parses the detail
-  pages into the same model.
+- `ecidadania.ts` — normalises the portal's popular lists, parses its full
+  paginated listings and extracts the detail pages into the same model.
 - `http.ts` — fetch helpers, `X-Total-Count` parsing and the limiter.
 
 ## Project structure

@@ -74,6 +74,14 @@ export interface EcidadaniaDetalhe extends EcidadaniaItem {
   descricao: string;
 }
 
+/** One page of the portal's full, paginated listings (100 items per page). */
+export interface EcidadaniaPagina {
+  tipo: EcidadaniaTipo;
+  pagina: number;
+  totalPaginas: number;
+  items: EcidadaniaItem[];
+}
+
 /** Where a proposal stands today and who is behind it, for the plain-language explainer. */
 export interface ContextoProposta {
   situacao?: string;

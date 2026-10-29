@@ -1,7 +1,12 @@
+import { useEffect, useRef } from "react";
 import {
   ArrowUpRight,
-  Flame,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Lightbulb,
+  List,
   MessagesSquare,
   Vote,
 } from "lucide-react";
@@ -15,14 +20,21 @@ import {
   participacaoHref,
   router,
   useQueryEnum,
+  useQueryParam,
   useRoute,
 } from "@/hooks/useUi";
-import { useEcidadaniaConsultas, useEcidadaniaIdeias, useEcidadaniaRelatores } from "@/hooks/useEcidadania";
+import {
+  useEcidadaniaConsultas,
+  useEcidadaniaIdeias,
+  useEcidadaniaPagina,
+} from "@/hooks/useEcidadania";
 import { DetalheSheet } from "./DetalheSheet";
-import { PopularCard, PopularCardSkeleton } from "./PopularCard";
+import { EcidadaniaCard, EcidadaniaCardSkeleton } from "./EcidadaniaCard";
 
-type Aba = "ideias" | "consultas";
-const ABAS: readonly Aba[] = ["ideias", "consultas"];
+type Aba = "consultas" | "ideias";
+const ABAS: readonly Aba[] = ["consultas", "ideias"];
+/** The portal returns 100 items per page; keep the source pagination intact. */
+const POR_PAGINA = 100;
 
 function somaRecentes(itens: EcidadaniaItem[]): number {
   return itens.reduce((total, item) => total + (item.recentes ?? 0), 0);
@@ -120,7 +132,7 @@ function ComoFuncionaCard() {
           vai para a CDH, que pode transformá-la em proposição ou arquivá-la.
         </p>
         <a
-          href={`${ECIDADANIA_SITE}/principalideia`}
+          href={`${ECIDADANIA_SITE}/pesquisaideia`}
           target="_blank"
           rel="noreferrer"
           className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] font-medium text-fg-2 transition-colors hover:text-fg"
@@ -139,7 +151,7 @@ function ComoFuncionaCard() {
           senadores como contribuição da sociedade durante a tramitação.
         </p>
         <a
-          href={`${ECIDADANIA_SITE}/principalmateria`}
+          href={`${ECIDADANIA_SITE}/pesquisamateria`}
           target="_blank"
           rel="noreferrer"
           className="mt-2 inline-flex items-center gap-1.5 text-[11.5px] font-medium text-fg-2 transition-colors hover:text-fg"
@@ -157,8 +169,9 @@ function FonteCard() {
     <section className="card" aria-labelledby="fonte-participacao">
       <h2 id="fonte-participacao" className="section-title">Fonte</h2>
       <p className="mt-2 text-[11.5px] leading-relaxed text-fg-3">
-        Dados oficiais do portal e-Cidadania, do Senado Federal. As listas mostram o
-        movimento das últimas 24 horas e são atualizadas a cada cinco minutos.
+        Dados oficiais do portal e-Cidadania, do Senado Federal. A lista completa é
+        paginada, com 100 itens por página, e atualizada a cada cinco minutos. Os
+        destaques ao lado mostram o movimento das últimas 24 horas.
       </p>
       <a
         href="https://www12.senado.leg.br/ecidadania"
@@ -175,42 +188,67 @@ function FonteCard() {
 
 export function ParticipacaoView() {
   const { param } = useRoute();
-  const [aba, setAba] = useQueryEnum<Aba>("aba", ABAS, "ideias");
+  const [aba] = useQueryEnum<Aba>("aba", ABAS, "consultas");
+  const [paginaParam, setPagina] = useQueryParam("pagina", "1");
   const detalhe = parseParticipacaoParam(param);
   const tipoAtivo: Aba = detalhe ? (detalhe.tipo === "consulta" ? "consultas" : "ideias") : aba;
+  const pagina = Math.max(1, Number(paginaParam) || 1);
+  const tipo = tipoAtivo === "consultas" ? "consulta" : "ideia";
 
-  const ideiasQ = useEcidadaniaIdeias();
-  const consultasQ = useEcidadaniaConsultas();
-  const ideias = ideiasQ.data ?? [];
-  const consultas = consultasQ.data ?? [];
-  const q = tipoAtivo === "ideias" ? ideiasQ : consultasQ;
-  const lista = tipoAtivo === "ideias" ? ideias : consultas;
+  // The 24-hour highlights are a separate, small signal and keep using the
+  // portal's popular endpoints. The list below is the complete archive.
+  const destaquesIdeiasQ = useEcidadaniaIdeias();
+  const destaquesConsultasQ = useEcidadaniaConsultas();
+  const ideiasDestaque = destaquesIdeiasQ.data ?? [];
+  const consultasDestaque = destaquesConsultasQ.data ?? [];
 
-  // The rapporteur lives on the Senate matter page, so it is only fetched
-  // when the consultations are actually on screen.
-  const idsConsultas = tipoAtivo === "consultas" ? consultas.map((c) => c.id) : [];
-  const relatores = useEcidadaniaRelatores(idsConsultas);
-  const relatorDe = new Map(idsConsultas.map((id, i) => [id, relatores[i]]));
+  const paginaQ = useEcidadaniaPagina(tipo, pagina);
+  // keepPreviousData makes paging smooth, but a tab switch must not show the
+  // previous type's items under the new heading.
+  const trocandoTipo = paginaQ.isPlaceholderData && paginaQ.data?.tipo !== tipo;
+  const lista = trocandoTipo ? [] : (paginaQ.data?.items ?? []);
+  const totalPaginas = trocandoTipo ? 1 : (paginaQ.data?.totalPaginas ?? 1);
+  const paginaExibida = paginaQ.data?.pagina ?? pagina;
+  const carregando = paginaQ.isLoading || trocandoTipo;
+  const listaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listaRef.current?.scrollTo({ top: 0 });
+  }, [tipo, pagina]);
+
+  useEffect(() => {
+    if (paginaQ.data && pagina > paginaQ.data.totalPaginas) {
+      setPagina(String(paginaQ.data.totalPaginas));
+    }
+  }, [pagina, paginaQ.data, setPagina]);
 
   const trocarAba = (proxima: Aba) => {
-    if (detalhe) {
-      router.go("participacao", undefined, { aba: proxima === "consultas" ? "consultas" : undefined });
-      return;
-    }
-    setAba(proxima);
+    if (!detalhe && proxima === tipoAtivo) return;
+    const manterPagina = !!detalhe && proxima === tipoAtivo;
+    const query = {
+      aba: proxima === "ideias" ? "ideias" : null,
+      pagina: manterPagina && pagina > 1 ? String(pagina) : null,
+    };
+    if (detalhe) router.go("participacao", undefined, query);
+    else router.patch(query);
   };
+
+  const irParaPagina = (destino: number) =>
+    setPagina(String(Math.min(Math.max(1, destino), totalPaginas)));
 
   const abrir = (item: EcidadaniaItem) => {
     router.abrir(
       participacaoHref(item, {
-        aba: item.tipo === "consulta" ? "consultas" : undefined,
+        aba: tipoAtivo === "ideias" ? "ideias" : undefined,
+        pagina: paginaExibida > 1 ? String(paginaExibida) : undefined,
       })
     );
   };
 
   const fechar = () => {
     router.go("participacao", undefined, {
-      aba: detalhe?.tipo === "consulta" ? "consultas" : undefined,
+      aba: tipoAtivo === "ideias" ? "ideias" : undefined,
+      pagina: paginaExibida > 1 ? String(paginaExibida) : undefined,
     });
   };
 
@@ -219,10 +257,11 @@ export function ParticipacaoView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="label">Senado Federal · e-Cidadania</p>
-          <h1 className="manchete mt-2">O que o país está apoiando agora</h1>
+          <h1 className="manchete mt-2">Todas as consultas e ideias</h1>
           <p className="mt-2 max-w-[56ch] text-[12.5px] leading-relaxed text-fg-3">
-            As ideias e consultas públicas mais movimentadas nas últimas 24 horas.
-            Abra uma para ler o texto completo, os apoios e os votos — e participe no portal oficial.
+            Percorra a lista completa de consultas públicas e ideias legislativas do portal
+            e-Cidadania. Abra qualquer item para ler o texto completo, os apoios e os votos —
+            e participe no portal oficial.
           </p>
         </div>
         <a
@@ -238,58 +277,107 @@ export function ParticipacaoView() {
 
       <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-line py-2.5">
         <div className="switch switch-sm" role="group" aria-label="Tipo de participação">
-          <button type="button" aria-pressed={tipoAtivo === "ideias"} onClick={() => trocarAba("ideias")}>
-            Ideias
-            {ideias.length > 0 && <span className="tn text-[10.5px] text-fg-4">{ideias.length}</span>}
-          </button>
           <button type="button" aria-pressed={tipoAtivo === "consultas"} onClick={() => trocarAba("consultas")}>
             Consultas
-            {consultas.length > 0 && <span className="tn text-[10.5px] text-fg-4">{consultas.length}</span>}
+          </button>
+          <button type="button" aria-pressed={tipoAtivo === "ideias"} onClick={() => trocarAba("ideias")}>
+            Ideias
           </button>
         </div>
         <p className="inline-flex items-center gap-1.5 text-[11px] text-fg-4">
-          <Flame className="h-3 w-3 text-orange" />
-          Mais movimentadas nas últimas 24 h
+          <List className="h-3 w-3 text-fg-5" />
+          Lista completa · {POR_PAGINA} por página
         </p>
       </div>
 
-      <div className="quiet-scroll mt-3 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5">
-        {q.isLoading && (
+      <div
+        ref={listaRef}
+        className={`quiet-scroll mt-3 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5 transition-opacity ${
+          paginaQ.isFetching && !carregando ? "opacity-60" : ""
+        }`}
+        aria-busy={carregando || paginaQ.isFetching}
+      >
+        {carregando && (
           <div className="space-y-2.5" aria-busy="true">
-            {Array.from({ length: 5 }, (_, i) => (
-              <PopularCardSkeleton key={i} />
+            {Array.from({ length: 6 }, (_, i) => (
+              <EcidadaniaCardSkeleton key={i} />
             ))}
           </div>
         )}
-        {q.isError && !q.data && (
+        {!carregando && paginaQ.isError && !paginaQ.data && (
           <ErrorState
-            title="Não foi possível carregar o e-Cidadania"
-            description={(q.error as Error | null)?.message}
-            onRetry={() => q.refetch()}
+            title="Não foi possível carregar a lista do e-Cidadania"
+            description={(paginaQ.error as Error | null)?.message}
+            onRetry={() => paginaQ.refetch()}
           />
         )}
-        {!q.isLoading && !q.isError && lista.length === 0 && (
+        {!carregando && !paginaQ.isError && lista.length === 0 && (
           <EmptyState
             icon={tipoAtivo === "ideias" ? Lightbulb : MessagesSquare}
-            title="Nenhum item em destaque agora"
-            description="O portal não retornou itens para as últimas 24 horas. Tente atualizar em alguns minutos."
+            title="Nenhum item nesta página"
+            description="A lista oficial não retornou itens para esta página. Tente voltar uma página ou atualizar."
           />
         )}
-        {lista.map((item, index) => {
-          const relator = item.tipo === "consulta" ? relatorDe.get(item.id) : undefined;
-          return (
-            <PopularCard
+        {!carregando &&
+          lista.map((item, index) => (
+            <EcidadaniaCard
               key={`${item.tipo}-${item.id}`}
               item={item}
-              posicao={index + 1}
+              posicao={(paginaExibida - 1) * POR_PAGINA + index + 1}
               onOpen={abrir}
-              relator={relator?.data}
-              relatorLoading={relator?.isLoading}
-              relatorError={relator?.isError}
             />
-          );
-        })}
+          ))}
       </div>
+
+      {!carregando && paginaQ.data && lista.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[12px] text-fg-3">
+          <span className="tn">
+            {formatNumber((paginaExibida - 1) * POR_PAGINA + 1)}–
+            {formatNumber((paginaExibida - 1) * POR_PAGINA + lista.length)}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="tn">
+              Página {formatNumber(paginaExibida)} de {formatNumber(totalPaginas)}
+            </span>
+            <button
+              type="button"
+              className="icon-btn h-8 w-8"
+              aria-label="Primeira página"
+              disabled={paginaQ.isFetching || paginaExibida <= 1}
+              onClick={() => irParaPagina(1)}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn h-8 w-8"
+              aria-label="Página anterior"
+              disabled={paginaQ.isFetching || paginaExibida <= 1}
+              onClick={() => irParaPagina(paginaExibida - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn h-8 w-8"
+              aria-label="Próxima página"
+              disabled={paginaQ.isFetching || paginaExibida >= totalPaginas}
+              onClick={() => irParaPagina(paginaExibida + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-btn h-8 w-8"
+              aria-label="Última página"
+              disabled={paginaQ.isFetching || paginaExibida >= totalPaginas}
+              onClick={() => irParaPagina(totalPaginas)}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 
@@ -300,10 +388,10 @@ export function ParticipacaoView() {
         left={
           <>
             <ResumoCard
-              ideias={ideias}
-              consultas={consultas}
-              isLoading={ideiasQ.isLoading || consultasQ.isLoading}
-              isError={ideiasQ.isError || consultasQ.isError}
+              ideias={ideiasDestaque}
+              consultas={consultasDestaque}
+              isLoading={destaquesIdeiasQ.isLoading || destaquesConsultasQ.isLoading}
+              isError={destaquesIdeiasQ.isError || destaquesConsultasQ.isError}
             />
             <SobreCard />
           </>
