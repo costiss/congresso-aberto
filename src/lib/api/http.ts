@@ -72,6 +72,35 @@ export async function getJson<T>(
   }
 }
 
+/** GET a plain-text (or HTML) resource from an open-data host. */
+export async function getText(
+  url: string,
+  init?: RequestInit,
+  timeout = DEFAULT_TIMEOUT
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await buscar(url, {
+      ...init,
+      signal: controller.signal,
+      headers: { Accept: "text/html,application/xhtml+xml", ...(init?.headers ?? {}) },
+    });
+    if (!res.ok) {
+      throw new ApiError(`${res.status} ${res.statusText}`, res.status);
+    }
+    return await res.text();
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("Tempo esgotado ao consultar a API", 408);
+    }
+    throw new ApiError((err as Error).message || "Falha de rede", 0);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** GET a Câmara-style paged endpoint, also reading `X-Total-Count`. */
 export async function getPaged<T>(url: string): Promise<{
   dados: T[];

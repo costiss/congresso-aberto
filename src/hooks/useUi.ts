@@ -11,7 +11,7 @@ export function useDebouncedValue<T>(value: T, delay = 250): T {
 
 /* --------------------------- tiny hash router --------------------------- */
 
-export type View = "votacoes" | "inspecionar" | "parlamentar" | "lista" | "camara" | "senado" | "agenda";
+export type View = "votacoes" | "inspecionar" | "parlamentar" | "lista" | "camara" | "senado" | "agenda" | "participacao";
 export type Query = Record<string, string | null | undefined>;
 
 export interface Route {
@@ -20,7 +20,7 @@ export interface Route {
   query: URLSearchParams;
 }
 
-const VIEWS: View[] = ["votacoes", "inspecionar", "parlamentar", "lista", "camara", "senado", "agenda"];
+const VIEWS: View[] = ["votacoes", "inspecionar", "parlamentar", "lista", "camara", "senado", "agenda", "participacao"];
 
 const LEGADO: Record<string, { view: View; query?: Query }> = {
   dashboard: { view: "votacoes" },
@@ -30,6 +30,7 @@ const LEGADO: Record<string, { view: View; query?: Query }> = {
   deputados: { view: "camara" },
   metricas: { view: "camara" },
   senadores: { view: "senado" },
+  ecidadania: { view: "participacao" },
 };
 
 function decodificar(raw: string): string {
@@ -137,6 +138,18 @@ export function inspecaoHref(v: { id: string; casa: string; data?: string }, que
 /** A deputy's or senator's page; `id` is namespaced (camara-123, senado-456). */
 export function parlamentarHref(id: string, query?: Query): string {
   return routeHref("parlamentar", id, query);
+}
+
+/** An e-Cidadania item's page; `param` is namespaced (ideia-244671, consulta-137929). */
+export function participacaoHref(item: { id: number; tipo: "ideia" | "consulta" }, query?: Query): string {
+  return routeHref("participacao", `${item.tipo}-${item.id}`, query);
+}
+
+/** Splits `ideia-244671` / `consulta-137929` back into its type and id. */
+export function parseParticipacaoParam(param?: string): { tipo: "ideia" | "consulta"; id: number } | null {
+  const m = /^(ideia|consulta)-(\d+)$/.exec(param ?? "");
+  if (!m) return null;
+  return { tipo: m[1] as "ideia" | "consulta", id: Number(m[2]) };
 }
 
 function dataSenado(v: { casa: string; data?: string }): string | undefined {

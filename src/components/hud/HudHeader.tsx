@@ -13,6 +13,7 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "camara", label: "Câmara" },
   { id: "senado", label: "Senado" },
   { id: "agenda", label: "Agenda" },
+  { id: "participacao", label: "Participe" },
 ];
 
 function Brand() {
@@ -21,7 +22,7 @@ function Brand() {
       <span className="font-serif text-[22px] leading-none tracking-[-0.01em] text-fg">
         Congresso Aberto
       </span>
-      <span className="text-[11px] text-fg-4">Câmara · Senado</span>
+      <span className="inline text-[11px] text-fg-4 lg:hidden xl:inline">Câmara · Senado</span>
     </a>
   );
 }
@@ -110,7 +111,7 @@ export function HudHeader({ view, onSearch }: { view: View; onSearch: () => void
         <AoVivoBadge />
         <StatusLine />
       </div>
-      <ViewSwitch view={view} className="w-full lg:w-auto [&>a]:flex-1 [&>a]:px-1.5 max-[380px]:[&>a]:px-1 max-[380px]:[&>a]:text-[12px] sm:[&>a]:px-2.5 lg:[&>a]:flex-none lg:[&>a]:px-3.5" />
+      <ViewSwitch view={view} className="w-full lg:w-auto [&>a]:flex-1 [&>a]:px-1.5 max-[380px]:[&>a]:px-1 max-[380px]:[&>a]:text-[12px] sm:[&>a]:px-2.5 lg:[&>a]:flex-none lg:[&>a]:px-2.5 xl:[&>a]:px-3" />
       <button
         type="button"
         onClick={onSearch}

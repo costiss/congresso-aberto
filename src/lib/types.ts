@@ -35,6 +35,45 @@ export interface Parlamentar {
   bloco?: string;
 }
 
+/** A citizen idea or public consultation on the Senate's e-Cidadania portal. */
+export type EcidadaniaTipo = "ideia" | "consulta";
+
+export interface EcidadaniaItem {
+  id: number;
+  tipo: EcidadaniaTipo;
+  /** Display title: the idea's title or the proposition's short code (e.g. "PLP 183/2019"). */
+  titulo: string;
+  /** The idea's full text or the consultation's ementa. */
+  descricao?: string;
+  /** Short proposition code for consultations, e.g. "PLP 183/2019". */
+  identificacao?: string;
+  autor?: string;
+  /** Ideas: confirmed supports. */
+  apoios?: number;
+  /** Ideas: support goal (20,000). */
+  meta?: number;
+  /** Consultations: SIM and NÃO votes. */
+  votosFavor?: number;
+  votosContra?: number;
+  totalVotos?: number;
+  /** Supports or votes in the last 24 hours. */
+  recentes?: number;
+  /** Goal progress for ideas; SIM share for consultations. */
+  percentual: number;
+  /** Deadline for supports, as shown by the portal. */
+  prazo?: string;
+  aberta?: boolean;
+  /** When the consultation's tally was last updated. */
+  atualizadoEm?: string;
+  dataPublicacao?: string;
+  textoUrl?: string;
+  tramitacaoUrl?: string;
+}
+
+export interface EcidadaniaDetalhe extends EcidadaniaItem {
+  descricao: string;
+}
+
 /** Where a proposal stands today and who is behind it, for the plain-language explainer. */
 export interface ContextoProposta {
   situacao?: string;

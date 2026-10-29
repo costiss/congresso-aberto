@@ -63,6 +63,13 @@ Brazil map, Faustina serif figures and a timeline dock at the bottom.
   A **Pautas** tab lists every session that has an order paper in the period —
   both houses, live and past — each opening in place to its full pauta, so the
   official site is not needed to read it.
+- **Participação** (`#/participacao`) — the e-Cidadania portal's most active
+  ideas and public consultations in the last 24 hours. A switch toggles between
+  the two; each row shows support progress or the SIM/NÃO split, activity in the
+  last 24 hours, the support deadline, and the consultation's rapporteur.
+  Opening a row shows the full text, the current tally and the link to
+  participate on the official portal. Detail links are shareable:
+  `#/participacao/ideia-<id>` and `#/participacao/consulta-<id>`.
 
 Ctrl K searches deputies, senators and recent votes.
 
@@ -79,6 +86,8 @@ Defaults are left out of the URL.
 | `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>\|<ini>..<fim>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |
 | `#/camara`, `#/senado` | `uf`, `partido`, `q` |
 | `#/agenda` | `periodo=realizados`, `tipo=plenario\|comissoes` |
+| `#/participacao` | `aba=ideias\|consultas` |
+| `#/participacao/ideia-<id>`, `#/participacao/consulta-<id>` | `aba` (keeps the list behind the detail open) |
 
 Example: `#/lista?casa=senado&periodo=2025&tipo=PEC&resultado=aprovada`.
 Old links such as `#/pecs` are rewritten to their list equivalent.
@@ -119,13 +128,19 @@ value is only written back to the URL when it differs from the screen's default.
 | Source | Base URL | Notes |
 | --- | --- | --- |
 | Câmara dos Deputados | `https://dadosabertos.camara.leg.br/api/v2` | Deputies (513), parties, propositions, tramitações, autores, votações + votos, eventos + pauta. Sends `X-Total-Count`, used for historical counts. The plenary is live when an event reads `Em Andamento`; its order paper (`/eventos/{id}/pauta`) gives each item's `situacaoItem` and, once voted, its `uriVotacao`. |
-| Senado Federal | `https://legis.senado.leg.br/dadosabertos` | Senators (81), senator votes, recent floor votes (`/votacao`) and propositions (`/processo`). The day's plenário is live at `/plenario/agenda/dia/{AAAAMMDD}` (session status) and `/plenario/resultado/{AAAAMMDD}` (each item's result as it is decided). |
+| Senado Federal | `https://legis.senado.leg.br/dadosabertos` | Senators (81), senator votes, recent floor votes (`/votacao`), propositions (`/processo`) and the rapporteur of a matter (`/processo/relatoria?codigoMateria=…`). The day's plenário is live at `/plenario/agenda/dia/{AAAAMMDD}` (session status) and `/plenario/resultado/{AAAAMMDD}` (each item's result as it is decided). |
+| e-Cidadania | `https://www12.senado.leg.br/ecidadania` (via `/api/ecidadania` on the same origin) | Popular ideas and public consultations (`restcolecaomaisideia`, `restcolecaomaismateria`), their detail pages, and the official links. The portal sends no CORS headers, so nginx proxies `/api/ecidadania/*`; Vite mirrors that proxy in development. |
 
-Both APIs normally return `Access-Control-Allow-Origin: *`, so the browser can
-call them directly. Some Câmara nodes intermittently omit the header (the browser
-then reports a network error), so the fetch helper retries bypassing the HTTP
-cache and the query client retries with backoff. The Câmara API also rate-limits
-bursts, so the adapter runs its requests through a small concurrency limiter.
+The consultation's rapporteur is not in the e-Cidadania payload; it comes from
+the Senate open-data `/processo/relatoria?codigoMateria=…`. A matter with no
+open relatoria is shown as **aguardando designação**.
+
+The Câmara and Senate APIs normally return `Access-Control-Allow-Origin: *`, so
+the browser can call them directly. Some Câmara nodes intermittently omit the
+header (the browser then reports a network error), so the fetch helper retries
+bypassing the HTTP cache and the query client retries with backoff. The Câmara
+API also rate-limits bursts, so the adapter runs its requests through a small
+concurrency limiter.
 
 Neither API pushes: "live" means polling. Both floors are polled every 30 s only
 while a session is running (every 90 s otherwise, and never in a background tab),
@@ -140,6 +155,8 @@ The API layer lives in `src/lib/api`:
 
 - `camara.ts` / `senado.ts` — adapters that normalise the two very different
   payloads into the shared model in `src/lib/types.ts`.
+- `ecidadania.ts` — normalises the portal's popular lists and parses the detail
+  pages into the same model.
 - `http.ts` — fetch helpers, `X-Total-Count` parsing and the limiter.
 
 ## Project structure
@@ -151,21 +168,30 @@ src/
 │   ├── shared/     hemicycle, avatars, badges, states
 │   ├── detail/     proposition / member sheets
 │   └── ui/         Radix-based primitives
-├── views/          votacoes, inspecao, lista, casa (Câmara/Senado), agenda
+├── views/          votacoes, inspecao, lista, casa (Câmara/Senado), agenda, participacao
 ├── hooks/          TanStack Query hooks + hash router
 └── lib/            api adapters, vote semantics, breakdowns, geo shapes
 ```
 
 ## Deployment
 
-There is no backend. The production build is a static site: nginx serves the
-files and every visitor's browser calls the government APIs directly. Nothing
-proxies traffic, so the host's IP is never the one talking to the APIs and there
-is no cache or rate-limit state to run.
+There is no application backend. The production build is a static site: nginx
+serves the files and every visitor's browser calls the Câmara and Senate APIs
+directly. The one exception is **e-Cidadania**, which sends no CORS headers:
+nginx reverse-proxies `/api/ecidadania/*` to the portal and keeps a short
+in-memory cache, so the server IP is never hammering the portal.
 
 - **Static app**: hashed `/assets/*` cached for a year, `index.html`
   revalidated, unknown paths fall back to `index.html` (see
   `deploy/nginx.conf`).
+- **e-Cidadania proxy**: `/api/ecidadania/*` is proxied to
+  `www12.senado.leg.br/ecidadania`. The cache lives in `/dev/shm` (tmpfs) and
+  holds each URL for five minutes; `proxy_cache_lock` collapses concurrent
+  misses into one upstream call, `proxy_cache_use_stale` serves the last good
+  copy when the portal is slow, and the upstream block caps the proxy at two
+  concurrent connections. Per-visitor limits (5 req/s, 8 concurrent, keyed by
+  `CF-Connecting-IP` behind Cloudflare) keep one client from abusing the proxy.
+  Vite mirrors the same proxy in development.
 - **Client caching**: TanStack Query deduplicates and caches requests in the
   browser; the Câmara adapter also caps in-flight requests so a burst from one
   visitor does not trip the API's limiter.
@@ -173,9 +199,9 @@ is no cache or rate-limit state to run.
 
 ```bash
 docker build -t camara .
-docker run -p 8080:8080 camara        # static app on http://localhost:8080
+docker run -p 8080:8080 camara        # static app + e-Cidadania proxy
 
-npm run dev                           # Vite on :5173, direct to the APIs
+npm run dev                           # Vite on :5173, with the e-Cidadania dev proxy
 ```
 
 ### Dokploy behind Cloudflare
@@ -186,9 +212,10 @@ npm run dev                           # Vite on :5173, direct to the APIs
 3. In Cloudflare, proxy the DNS record (orange cloud) and use SSL mode
    **Full (strict)**.
 
-Any number of replicas can run: there is no shared state. Cloudflare's cache
-only covers this site's own files; the API calls go from the visitor's browser
-to the government domains and are not proxied by the container.
+Any number of replicas can run: the cache is per-replica and is only a cache,
+not shared state. Cloudflare's cache covers this site's own files; the Câmara
+and Senate API calls go from the visitor's browser to the government domains,
+and only e-Cidadania passes through the container's nginx proxy.
 
 ## Getting started
 
@@ -199,5 +226,6 @@ npm run build    # type-check + production build
 npm run lint
 ```
 
-No API keys or backend are required — the browser talks to the official APIs
-directly.
+No API keys are required. nginx (or Vite in development) proxies only
+e-Cidadania, which does not send CORS headers; every other call goes from the
+browser to the official open-data APIs.

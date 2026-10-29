@@ -11,6 +11,7 @@ import { CasaView } from "@/views/casa/CasaView";
 import { InspecaoView } from "@/views/inspecao/InspecaoView";
 import { ListaView } from "@/views/lista/ListaView";
 import { ParlamentarView } from "@/views/parlamentar/ParlamentarView";
+import { ParticipacaoView } from "@/views/participacao/ParticipacaoView";
 import { VotacoesView } from "@/views/votacoes/VotacoesView";
 
 const queryClient = new QueryClient({
@@ -48,6 +49,7 @@ function Hud() {
       {route.view === "camara" && <CasaView key="camara" casa="camara" />}
       {route.view === "senado" && <CasaView key="senado" casa="senado" />}
       {route.view === "agenda" && <AgendaView />}
+      {route.view === "participacao" && <ParticipacaoView />}
       <SearchDialog open={busca} onOpenChange={setBusca} />
     </div>
   );

@@ -8,6 +8,8 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine
+COPY deploy/10-ecidadania-cache.sh /docker-entrypoint.d/10-ecidadania-cache.sh
+RUN chmod +x /docker-entrypoint.d/10-ecidadania-cache.sh
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=web /web/dist /usr/share/nginx/html
 EXPOSE 8080
