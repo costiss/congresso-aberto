@@ -4,6 +4,7 @@ import { Maximize, Minimize, RefreshCw, Search } from "lucide-react";
 import { routeHref, type View } from "@/hooks/useUi";
 import { cn } from "@/lib/utils";
 import { AoVivoBadge } from "./AoVivoBadge";
+import { RepoLink } from "./RepoLink";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "votacoes", label: "Votações" },
@@ -64,6 +65,7 @@ function StatusLine() {
       >
         <RefreshCw className={cn("h-4 w-4", atualizando && "animate-spin")} />
       </button>
+      <RepoLink />
     </div>
   );
 }
