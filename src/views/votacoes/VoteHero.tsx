@@ -3,6 +3,7 @@ import { CodigoProposta, TextoOficial, Veredito } from "@/components/hud/propost
 import { inspecaoHref } from "@/hooks/useUi";
 import { formatNumber, formatQuando } from "@/lib/format";
 import { lerVotacao } from "@/lib/linguagem";
+import { classeTitulo } from "@/lib/titulo";
 import type { Votacao } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CADEIRAS, CATEGORIA_COR, quorumDe, type VoteTally } from "@/lib/votos";
@@ -26,12 +27,6 @@ function Figura({ label, valor, pct, cor, alinhamento }: {
       </span>
     </div>
   );
-}
-
-function tamanhoTitulo(titulo: string): string {
-  if (titulo.length > 80) return "titulo-voto titulo-voto-longo";
-  if (titulo.length > 48) return "titulo-voto titulo-voto-medio";
-  return "titulo-voto";
 }
 
 export function VoteHero({ votacao, tally, onOpenRollCall }: {
@@ -60,7 +55,7 @@ export function VoteHero({ votacao, tally, onOpenRollCall }: {
         <Veredito votacao={votacao} destaque className="text-[14px]" />
       </div>
 
-      <h1 id="vote-title" className={cn("mt-4", tamanhoTitulo(leitura.titulo))}>{leitura.titulo}</h1>
+      <h1 id="vote-title" className={cn("mt-4", classeTitulo(leitura.tituloCompleto))}>{leitura.tituloCompleto}</h1>
       <CodigoProposta leitura={leitura} className="mt-2.5 block text-[13px] text-fg-3" />
 
       <div className="mt-5 grid gap-5 @xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] @xl:gap-7">

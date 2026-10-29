@@ -19,6 +19,16 @@ export function ListaView() {
   const aoVivo = useItensAoVivo(filtro.casa);
   const opcoes = useMemo(() => Periodo.opcoes(), []);
 
+  const buscando = filtro.busca.trim().length > 0;
+  const periodoMovel = filtro.periodo === "30d" || filtro.periodo === "90d";
+
+  // A search only looks inside the chosen period. When a rolling window comes
+  // up empty, offer the current year, where most recent votes live.
+  const sugestaoPeriodo = useMemo(() => {
+    if (!buscando || !periodoMovel) return null;
+    return opcoes.find((p) => /^\d{4}$/.test(p.valor))?.valor ?? null;
+  }, [buscando, periodoMovel, opcoes]);
+
   const filtradas = useMemo(() => filtro.filtrar(feed.deliberacoes), [filtro, feed.deliberacoes]);
   const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
   const pagina = Math.min(filtro.pagina, paginas);
@@ -59,7 +69,7 @@ export function ListaView() {
             <input
               value={filtro.busca}
               onChange={(e) => definir({ q: e.target.value })}
-              placeholder="Proposição, tema ou texto"
+              placeholder="Ex.: PL 1234/2026, PEC 5, tema"
               className="field pl-9"
               aria-label="Buscar votações"
             />
@@ -95,7 +105,16 @@ export function ListaView() {
           ) : feed.isError ? (
             <ErrorState compact title="Não foi possível carregar as votações" onRetry={feed.refetch} />
           ) : visiveis.length === 0 ? (
-            <p className="py-12 text-center text-[12px] text-fg-4">Nenhuma votação com esses filtros.</p>
+            <div className="flex flex-col items-center gap-3 py-12">
+              <p className="text-center text-[12px] text-fg-4">
+                {buscando ? "Nenhuma votação com essa busca no período." : "Nenhuma votação com esses filtros."}
+              </p>
+              {sugestaoPeriodo && (
+                <button type="button" className="btn btn-sm" onClick={() => definir({ periodo: sugestaoPeriodo })}>
+                  Buscar em todo o ano de {sugestaoPeriodo}
+                </button>
+              )}
+            </div>
           ) : (
             <ListaTabela itens={visiveis} aoVivo={aoVivo} />
           )}

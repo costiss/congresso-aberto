@@ -1,4 +1,5 @@
 import { Check, ChevronRight, Minus, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Leitura, TipoProposta } from "@/lib/linguagem";
 import type { StatusTone, Votacao } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,27 @@ export function Veredito({ votacao, destaque, className }: {
       <Icone className="h-[1.1em] w-[1.1em] shrink-0" strokeWidth={2.5} aria-hidden="true" />
       {r.label}
     </span>
+  );
+}
+
+/**
+ * A clamped headline that reveals the whole text on hover. `texto` is the
+ * full title; `children` is what the list shows in place.
+ */
+export function TituloExpansivel({ texto, children, className }: {
+  texto: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn("relative z-[1]", className)}>{children ?? texto}</span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="max-w-md text-[12px]">
+        {texto}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
