@@ -1,5 +1,5 @@
 import { routeHref, votacaoHref, type Query } from "@/hooks/useUi";
-import { Veredito } from "@/components/hud/proposta";
+import { TituloExpansivel, Veredito } from "@/components/hud/proposta";
 import { IconeExterno, SeloAoVivo, SituacaoAoVivo } from "@/components/hud/AoVivo";
 import type { LinhaAoVivo } from "@/hooks/useAoVivo";
 import { NOME_CASA } from "@/lib/casa";
@@ -33,7 +33,9 @@ function FeedItem({ d, current, hrefQuery }: { d: Deliberacao; current: boolean;
           {leitura.tipo && ` · ${leitura.tipo.curto}`}
           {extra > 0 && ` · ${extra + 1} etapas`}
         </span>
-        <span className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-fg">{leitura.titulo}</span>
+        <TituloExpansivel texto={leitura.tituloCompleto} className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-fg">
+          {leitura.titulo}
+        </TituloExpansivel>
         <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px]">
           <Veredito votacao={v} />
           {v.placar && v.placar.total > 0 && <span className="tn text-fg-3">{v.placar.sim} a {v.placar.nao}</span>}
@@ -56,7 +58,9 @@ function FeedItemAoVivo({ item }: { item: LinhaAoVivo }) {
           <span className="tn">· {item.sigla}</span>
           {item.url && <IconeExterno className="self-center" />}
         </span>
-        <span className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-fg">{item.ementa || item.sigla}</span>
+        <TituloExpansivel texto={item.ementa || item.sigla} className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-fg">
+          {item.ementa || item.sigla}
+        </TituloExpansivel>
         <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px]">
           <SituacaoAoVivo item={item} />
         </span>

@@ -6,6 +6,7 @@ import { useDeputados } from "@/hooks/useCamara";
 import { useSenadores } from "@/hooks/useSenado";
 import { useDeliberacoes } from "@/hooks/useDeliberacoes";
 import { parlamentarHref, router, useDebouncedValue, votacaoHref } from "@/hooks/useUi";
+import { combinaBusca } from "@/lib/busca";
 import { tipoDaProposta, tituloPopular } from "@/lib/linguagem";
 import { formatDate } from "@/lib/format";
 
@@ -30,7 +31,8 @@ export function SearchDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [q, setQ] = useState("");
-  const query = norm(useDebouncedValue(q, 120).trim());
+  const termo = useDebouncedValue(q, 120).trim();
+  const query = norm(termo);
   const deputados = useDeputados();
   const senadores = useSenadores();
   const { deliberacoes } = useDeliberacoes();
@@ -45,9 +47,9 @@ export function SearchDialog({
   const votacoes = useMemo(() => {
     if (query.length < 2) return [];
     return deliberacoes
-      .filter((d) => norm(`${d.proposicao ?? ""} ${d.ementa ?? ""} ${d.principal.descricao}`).includes(query))
+      .filter((d) => combinaBusca([d.proposicao, d.ementa, d.principal.descricao], termo))
       .slice(0, 6);
-  }, [query, deliberacoes]);
+  }, [query, termo, deliberacoes]);
 
   const close = () => {
     onOpenChange(false);

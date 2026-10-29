@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAutoria, useBuscarVotacao, useSituacoes } from "@/hooks/useAutoria";
 import { router, useQueryParam, votacaoHref } from "@/hooks/useUi";
 import type { SituacaoProposicao } from "@/lib/api";
+import { combinaBusca } from "@/lib/busca";
 import { formatDate, formatNumber } from "@/lib/format";
 import { tipoDaProposta, tituloPopular } from "@/lib/linguagem";
 import { faseDaSituacao, FASE_LABEL, FASE_ORDEM, FASE_TOM, situacaoEmPalavras, type Fase } from "@/lib/situacao";
@@ -13,7 +14,6 @@ import type { Parlamentar, Proposicao } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const POR_PAGINA = 20;
-const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 function nomeTipo(tipo: string): string {
   return tipoDaProposta(tipo)?.curto ?? tipo;
@@ -137,13 +137,12 @@ export function PropostasAba({ parlamentar }: { parlamentar: Parlamentar }) {
   }, [todas, senado]);
 
   const filtradas = useMemo(() => {
-    const t = norm(busca.trim());
     return todas.filter(
       (p) =>
         (!tipo || p.tipo === tipo) &&
         (!ano || String(p.ano) === ano) &&
         (!fase || faseDaSituacao(p.status, p.tramitando) === fase) &&
-        (!t || norm(`${p.sigla} ${p.ementa}`).includes(t))
+        combinaBusca([p.sigla, p.ementa], busca)
     );
   }, [todas, tipo, ano, fase, busca]);
 

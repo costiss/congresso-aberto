@@ -1,4 +1,4 @@
-import { CodigoProposta, Veredito } from "@/components/hud/proposta";
+import { CodigoProposta, TituloExpansivel, Veredito } from "@/components/hud/proposta";
 import { CodigoAoVivo, IconeExterno, SeloAoVivo, SituacaoAoVivo } from "@/components/hud/AoVivo";
 import { votacaoHref } from "@/hooks/useUi";
 import type { LinhaAoVivo } from "@/hooks/useAoVivo";
@@ -50,11 +50,11 @@ function LinhaAoVivoTabela({ item }: { item: LinhaAoVivo }) {
             className="flex items-start gap-1 font-medium leading-snug text-fg no-underline hover:underline"
             title={`${item.sigla} — página oficial`}
           >
-            <span className="line-clamp-2">{titulo}</span>
+            <TituloExpansivel texto={titulo} className="line-clamp-2">{titulo}</TituloExpansivel>
             <IconeExterno className="mt-0.5" />
           </a>
         ) : (
-          <span className="line-clamp-2 font-medium leading-snug text-fg">{titulo}</span>
+          <TituloExpansivel texto={titulo} className="line-clamp-2 font-medium leading-snug text-fg">{titulo}</TituloExpansivel>
         )}
         <CodigoAoVivo item={item} className="mt-1 block text-[12px] text-fg-4" />
       </td>
@@ -75,7 +75,7 @@ function LinhaAoVivoLista({ item }: { item: LinhaAoVivo }) {
         <span className="text-fg-4">{NOME_CASA[item.casa]}</span>
         <span className="ml-auto"><SituacaoAoVivo item={item} /></span>
       </span>
-      <span className="mt-1 line-clamp-3 text-[14px] font-medium leading-snug text-fg">{titulo}</span>
+      <TituloExpansivel texto={titulo} className="mt-1 line-clamp-3 text-[14px] font-medium leading-snug text-fg">{titulo}</TituloExpansivel>
       <CodigoAoVivo item={item} className="mt-1 block text-[12px] text-fg-4" />
     </>
   );
@@ -120,8 +120,10 @@ export function ListaTabela({ itens, aoVivo = [] }: { itens: Deliberacao[]; aoVi
                 </td>
                 <td className="text-fg-3">{NOME_CASA[d.casa]}</td>
                 <td>
-                  <a href={votacaoHref(d.principal, { de: "lista" })} className="lista-link line-clamp-2 font-medium leading-snug text-fg no-underline">
-                    {leitura.titulo}
+                  <a href={votacaoHref(d.principal, { de: "lista" })} className="lista-link no-underline">
+                    <TituloExpansivel texto={leitura.tituloCompleto} className="line-clamp-2 font-medium leading-snug text-fg">
+                      {leitura.titulo}
+                    </TituloExpansivel>
                   </a>
                   <Meta leitura={leitura} className="mt-1 block text-[12px] text-fg-4" />
                 </td>
@@ -148,7 +150,9 @@ export function ListaTabela({ itens, aoVivo = [] }: { itens: Deliberacao[]; aoVi
                   <span className="text-fg-4">{NOME_CASA[d.casa]}</span>
                   <span className="ml-auto"><Veredito votacao={d.principal} /></span>
                 </span>
-                <span className="mt-1 line-clamp-3 text-[14px] font-medium leading-snug text-fg">{leitura.titulo}</span>
+                <TituloExpansivel texto={leitura.tituloCompleto} className="mt-1 line-clamp-3 text-[14px] font-medium leading-snug text-fg">
+                  {leitura.titulo}
+                </TituloExpansivel>
                 <span className="mt-1 flex items-baseline gap-2 text-[12px] text-fg-4">
                   <Meta leitura={leitura} className="min-w-0 truncate" />
                   <span className="ml-auto shrink-0 text-fg-3"><Placar d={d} /></span>

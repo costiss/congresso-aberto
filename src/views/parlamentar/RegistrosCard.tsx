@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import { Veredito } from "@/components/hud/proposta";
 import { useQueryEnum, useQueryParam, votacaoHref } from "@/hooks/useUi";
+import { combinaBusca } from "@/lib/busca";
 import { formatDate, formatNumber } from "@/lib/format";
 import type { RegistroVoto } from "@/lib/historico";
 import { lerVotacao } from "@/lib/linguagem";
@@ -14,8 +15,6 @@ type Filtro = "todas" | "partido" | "governo" | "ausencias";
 const FILTROS: readonly Filtro[] = ["todas", "partido", "governo", "ausencias"];
 const PAGINA = 30;
 const AUSENCIA = new Set(["ausente", "sem-registro", "presente"]);
-
-const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 function passa(r: RegistroVoto, filtro: Filtro): boolean {
   if (filtro === "partido") return r.seguiuPartido === false;
@@ -80,7 +79,7 @@ export function RegistrosCard({ registros, casa, carregando }: { registros: Regi
   const [filtro, setFiltro] = useQueryEnum<Filtro>("filtro", FILTROS, "todas");
   const [q, setQ] = useQueryParam("q");
   const [limite, setLimite] = useState(PAGINA);
-  const busca = norm(q.trim());
+  const busca = q.trim();
 
   const contagem = useMemo(
     () => Object.fromEntries(FILTROS.map((f) => [f, registros.filter((r) => passa(r, f)).length])) as Record<Filtro, number>,
@@ -89,7 +88,7 @@ export function RegistrosCard({ registros, casa, carregando }: { registros: Regi
   const visiveis = useMemo(
     () =>
       registros.filter(
-        (r) => passa(r, filtro) && (!busca || norm(`${r.deliberacao.proposicao ?? ""} ${r.deliberacao.ementa ?? ""} ${r.votacao.descricao}`).includes(busca))
+        (r) => passa(r, filtro) && combinaBusca([r.deliberacao.proposicao, r.deliberacao.ementa, r.votacao.descricao], busca)
       ),
     [registros, filtro, busca]
   );

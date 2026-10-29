@@ -1,3 +1,4 @@
+import { combinaBusca } from "./busca";
 import type { Deliberacao } from "./deliberacoes";
 import { Periodo } from "./periodo";
 import type { Casa } from "./types";
@@ -13,8 +14,6 @@ export const RESULTADOS: readonly ResultadoFiltro[] = ["todos", "aprovada", "rej
 export const ORDENS: readonly Ordem[] = ["recentes", "antigas"];
 export const POR_PAGINA = 25;
 const SEM_TIPO = "Outros";
-
-const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 function escolher<T extends string>(raw: string | null, opcoes: readonly T[], fallback: T): T {
   return raw && (opcoes as readonly string[]).includes(raw) ? (raw as T) : fallback;
@@ -63,13 +62,12 @@ export class FiltroVotacoes {
 
   /** Applies every filter except `ignorar`, so facet counts show what each choice would yield. */
   filtrar(deliberacoes: Deliberacao[], ignorar?: Faceta): Deliberacao[] {
-    const q = norm(this.busca.trim());
     const out = deliberacoes.filter(
       (d) =>
         (ignorar === "tipo" || !this.tipo || FiltroVotacoes.tipoDe(d) === this.tipo) &&
         (ignorar === "resultado" || this.resultado === "todos" || FiltroVotacoes.resultadoDe(d) === this.resultado) &&
         (!this.nominal || d.votacoes.some((v) => v.nominal)) &&
-        (!q || norm(`${d.proposicao ?? ""} ${d.ementa ?? ""} ${d.principal.descricao ?? ""}`).includes(q))
+        combinaBusca([d.proposicao, d.ementa, d.principal.descricao], this.busca)
     );
     return this.ordem === "antigas" ? out.reverse() : out;
   }

@@ -3,8 +3,10 @@ import { CodigoProposta, ExplicaTipo, TextoOficial, Veredito } from "@/component
 import { votacaoHref } from "@/hooks/useUi";
 import { formatNumber, formatQuando } from "@/lib/format";
 import { lerVotacao } from "@/lib/linguagem";
+import { classeTitulo } from "@/lib/titulo";
 import type { InspecaoVotacao } from "@/lib/inspecao";
 import type { Votacao } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { CADEIRAS, CATEGORIA_COR, CATEGORIA_LABEL, CATEGORIA_ORDEM, quorumDe, type VoteTally } from "@/lib/votos";
 
 function proposicaoUrl(v: Votacao): string | undefined {
@@ -34,7 +36,7 @@ export function InspecaoResumo({ votacao, tally, inspecao, onVoto }: {
       </a>
       <p className="label mt-3">{casa} · {formatQuando(votacao.dataHora ?? votacao.data)}</p>
       <Veredito votacao={votacao} className="mt-4 text-[14px]" />
-      <h1 id="inspecao-title" className="titulo-voto titulo-voto-medio mt-1.5">{leitura.titulo}</h1>
+      <h1 id="inspecao-title" className={cn("mt-1.5", classeTitulo(leitura.tituloCompleto))}>{leitura.tituloCompleto}</h1>
       <CodigoProposta leitura={leitura} className="mt-2 block text-[13px] text-fg-3" />
       {leitura.tipo && <ExplicaTipo tipo={leitura.tipo} className="mt-1.5" />}
 

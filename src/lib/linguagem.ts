@@ -225,15 +225,19 @@ const REGRAS: Regra[] = [
 
 const MAX_TITULO = 140;
 
-/** A short headline in everyday language, derived from an official summary (ementa). */
-export function tituloPopular(ementa?: string | null): string {
+/**
+ * A headline in everyday language, derived from an official summary (ementa).
+ * `limite` defaults to a list-friendly length; pass `Infinity` for the full
+ * title on a page that has room for it.
+ */
+export function tituloPopular(ementa?: string | null, limite = MAX_TITULO): string {
   const s = limpar(semGritos(ementa ?? ""));
   if (!s) return "";
   const titulo = limpar(REGRAS.map((r) => r(s)).find((t): t is string => !!t) ?? s);
-  if (titulo.length <= MAX_TITULO) return maiuscula(titulo);
-  const corte = titulo.slice(0, MAX_TITULO);
+  if (!Number.isFinite(limite) || titulo.length <= limite) return maiuscula(titulo);
+  const corte = titulo.slice(0, limite);
   const fim = Math.max(corte.lastIndexOf(", "), corte.lastIndexOf(" e "), corte.lastIndexOf(" "));
-  return `${maiuscula(corte.slice(0, fim > 60 ? fim : MAX_TITULO).replace(/[,;:]$/, ""))}…`;
+  return `${maiuscula(corte.slice(0, fim > 60 ? fim : limite).replace(/[,;:]$/, ""))}…`;
 }
 
 /* ------------------------------ vote steps ------------------------------ */
@@ -291,8 +295,10 @@ export function etapaDaVotacao(descricao?: string | null): Etapa {
 /* ------------------------------ whole vote ------------------------------ */
 
 export interface Leitura {
-  /** Everyday-language headline; falls back to the spelled-out proposal name. */
+  /** Everyday-language headline, shortened for lists; falls back to the spelled-out proposal name. */
   titulo: string;
+  /** The same headline in full, for pages and tooltips that have room for it. */
+  tituloCompleto: string;
   tipo?: TipoProposta;
   /** The official code, e.g. `PLP 74/2026`, shown as secondary information. */
   codigo?: string;
@@ -302,7 +308,8 @@ export interface Leitura {
 export function lerVotacao(v: { proposicao?: string; proposicaoTipo?: string; ementa?: string; descricao?: string }): Leitura {
   const tipo = tipoDaProposta(v.proposicaoTipo ?? v.proposicao);
   const numero = v.proposicao?.split(/\s+/)[1];
-  const titulo =
-    tituloPopular(v.ementa) || (tipo && numero ? `${tipo.nome} ${numero}` : v.proposicao ?? "Votação no Plenário");
-  return { titulo, tipo, codigo: v.proposicao, etapa: etapaDaVotacao(v.descricao) };
+  const padrao = tipo && numero ? `${tipo.nome} ${numero}` : v.proposicao ?? "Votação no Plenário";
+  const tituloCompleto = tituloPopular(v.ementa, Infinity) || padrao;
+  const titulo = tituloPopular(v.ementa) || tituloCompleto;
+  return { titulo, tituloCompleto, tipo, codigo: v.proposicao, etapa: etapaDaVotacao(v.descricao) };
 }
