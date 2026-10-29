@@ -4,6 +4,7 @@ import { Maximize, Minimize, RefreshCw, Search } from "lucide-react";
 import { routeHref, type View } from "@/hooks/useUi";
 import { cn } from "@/lib/utils";
 import { AoVivoBadge } from "./AoVivoBadge";
+import { BugReportButton } from "./BugReportButton";
 import { RepoLink } from "./RepoLink";
 
 const VIEWS: { id: View; label: string }[] = [
@@ -81,9 +82,14 @@ function FullscreenButton() {
   const toggle = () =>
     full ? document.exitFullscreen() : document.documentElement.requestFullscreen();
   return (
-    <button type="button" className="btn hidden lg:inline-flex" onClick={toggle}>
+    <button
+      type="button"
+      className="btn hidden lg:inline-flex"
+      onClick={toggle}
+      aria-label={full ? "Sair da tela cheia" : "Tela cheia"}
+    >
       {full ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-      {full ? "Sair da tela cheia" : "Tela cheia"}
+      <span className="hidden xl:inline">{full ? "Sair da tela cheia" : "Tela cheia"}</span>
     </button>
   );
 }
@@ -93,9 +99,12 @@ export function HudHeader({ view, onSearch }: { view: View; onSearch: () => void
     <header className="flex flex-col gap-3 lg:h-11 lg:flex-row lg:items-center lg:gap-4 xl:gap-6">
       <div className="flex items-center justify-between gap-3">
         <Brand />
-        <button type="button" className="icon-btn lg:hidden" aria-label="Buscar" onClick={onSearch}>
-          <Search className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <BugReportButton />
+          <button type="button" className="icon-btn" aria-label="Buscar" onClick={onSearch}>
+            <Search className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-3 lg:hidden">
         <AoVivoBadge />
@@ -109,12 +118,13 @@ export function HudHeader({ view, onSearch }: { view: View; onSearch: () => void
       >
         <Search className="h-4 w-4" />
         <span className="font-medium">Buscar</span>
-        <span className="kbd">Ctrl K</span>
+        <span className="kbd hidden xl:inline-flex">Ctrl K</span>
       </button>
-      <div className="ml-auto hidden items-center gap-3 lg:flex">
+      <div className="ml-auto hidden items-center gap-2 lg:flex xl:gap-3">
         <AoVivoBadge />
         <StatusLine />
         <FullscreenButton />
+        <BugReportButton />
       </div>
     </header>
   );
