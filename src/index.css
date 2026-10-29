@@ -118,6 +118,29 @@
   display: none;
 }
 
+/* A quiet scrollbar that still says there is more content below. */
+.scroll-visible {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-3) transparent;
+  scrollbar-gutter: stable;
+}
+.scroll-visible::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scroll-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-visible::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-color: var(--color-line-3);
+  background-clip: content-box;
+}
+.scroll-visible::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-fg-5);
+}
+
 @layer components {
   /* HUD frame ------------------------------------------------------- */
   .hud {

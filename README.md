@@ -67,7 +67,9 @@ Brazil map, Faustina serif figures and a timeline dock at the bottom.
   A switch opens with public consultations and then ideas, both read from the
   portal's full, paginated listings (100 items per page). Each row shows support
   progress or the SIM/NÃO split and the support deadline; the pagination bar
-  moves through the whole archive. A separate card keeps the 24-hour highlights.
+  moves through the whole archive, and the search box queries the official
+  listing (title for ideas; number, author or year for consultations). A
+  separate card keeps the 24-hour highlights.
   Opening a row shows the full text, the current tally, the consultation's
   rapporteur and the link to participate on the official portal. Detail links
   are shareable, keep the list page behind them and are routable as
@@ -88,8 +90,8 @@ Defaults are left out of the URL.
 | `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>\|<ini>..<fim>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |
 | `#/camara`, `#/senado` | `uf`, `partido`, `q` |
 | `#/agenda` | `periodo=realizados`, `tipo=plenario\|comissoes` |
-| `#/participacao` | `aba=ideias\|consultas` (default `consultas`), `pagina` |
-| `#/participacao/ideia-<id>`, `#/participacao/consulta-<id>` | `aba`, `pagina` (keeps the list behind the detail open) |
+| `#/participacao` | `aba=ideias\|consultas` (default `consultas`), `pagina`, `q` |
+| `#/participacao/ideia-<id>`, `#/participacao/consulta-<id>` | `aba`, `pagina`, `q` (keeps the list behind the detail open) |
 
 Example: `#/lista?casa=senado&periodo=2025&tipo=PEC&resultado=aprovada`.
 Old links such as `#/pecs` are rewritten to their list equivalent.

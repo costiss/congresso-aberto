@@ -8,6 +8,7 @@ import {
   Lightbulb,
   List,
   MessagesSquare,
+  Search,
   Vote,
 } from "lucide-react";
 import { HudGrid } from "@/components/hud/HudGrid";
@@ -19,6 +20,7 @@ import {
   parseParticipacaoParam,
   participacaoHref,
   router,
+  useDebouncedValue,
   useQueryEnum,
   useQueryParam,
   useRoute,
@@ -187,9 +189,11 @@ function FonteCard() {
 }
 
 export function ParticipacaoView() {
-  const { param } = useRoute();
+  const { param, query } = useRoute();
   const [aba] = useQueryEnum<Aba>("aba", ABAS, "consultas");
   const [paginaParam, setPagina] = useQueryParam("pagina", "1");
+  const busca = query.get("q") ?? "";
+  const buscaDebounced = useDebouncedValue(busca.trim(), 400);
   const detalhe = parseParticipacaoParam(param);
   const tipoAtivo: Aba = detalhe ? (detalhe.tipo === "consulta" ? "consultas" : "ideias") : aba;
   const pagina = Math.max(1, Number(paginaParam) || 1);
@@ -202,7 +206,7 @@ export function ParticipacaoView() {
   const ideiasDestaque = destaquesIdeiasQ.data ?? [];
   const consultasDestaque = destaquesConsultasQ.data ?? [];
 
-  const paginaQ = useEcidadaniaPagina(tipo, pagina);
+  const paginaQ = useEcidadaniaPagina(tipo, pagina, buscaDebounced);
   // keepPreviousData makes paging smooth, but a tab switch must not show the
   // previous type's items under the new heading.
   const trocandoTipo = paginaQ.isPlaceholderData && paginaQ.data?.tipo !== tipo;
@@ -224,23 +228,27 @@ export function ParticipacaoView() {
 
   const trocarAba = (proxima: Aba) => {
     if (!detalhe && proxima === tipoAtivo) return;
-    const manterPagina = !!detalhe && proxima === tipoAtivo;
-    const query = {
+    const manterBusca = !!detalhe && proxima === tipoAtivo;
+    const mudancas = {
       aba: proxima === "ideias" ? "ideias" : null,
-      pagina: manterPagina && pagina > 1 ? String(pagina) : null,
+      pagina: manterBusca && pagina > 1 ? String(pagina) : null,
+      q: manterBusca && busca ? busca : null,
     };
-    if (detalhe) router.go("participacao", undefined, query);
-    else router.patch(query);
+    if (detalhe) router.go("participacao", undefined, mudancas);
+    else router.patch(mudancas);
   };
 
   const irParaPagina = (destino: number) =>
     setPagina(String(Math.min(Math.max(1, destino), totalPaginas)));
+
+  const definirBusca = (valor: string) => router.patch({ q: valor || null, pagina: null });
 
   const abrir = (item: EcidadaniaItem) => {
     router.abrir(
       participacaoHref(item, {
         aba: tipoAtivo === "ideias" ? "ideias" : undefined,
         pagina: paginaExibida > 1 ? String(paginaExibida) : undefined,
+        q: busca || undefined,
       })
     );
   };
@@ -249,6 +257,7 @@ export function ParticipacaoView() {
     router.go("participacao", undefined, {
       aba: tipoAtivo === "ideias" ? "ideias" : undefined,
       pagina: paginaExibida > 1 ? String(paginaExibida) : undefined,
+      q: busca || undefined,
     });
   };
 
@@ -286,13 +295,28 @@ export function ParticipacaoView() {
         </div>
         <p className="inline-flex items-center gap-1.5 text-[11px] text-fg-4">
           <List className="h-3 w-3 text-fg-5" />
-          Lista completa · {POR_PAGINA} por página
+          {buscaDebounced ? `Resultados para “${buscaDebounced}”` : `Lista completa · ${POR_PAGINA} por página`}
         </p>
+        <label className="relative ml-auto min-w-[210px] flex-1 sm:max-w-[300px]">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-5" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(event) => definirBusca(event.target.value)}
+            placeholder={
+              tipoAtivo === "consultas"
+                ? "Buscar por nº, autor ou ano"
+                : "Buscar ideias por título"
+            }
+            className="field pl-9"
+            aria-label={`Buscar na lista de ${tipoAtivo}`}
+          />
+        </label>
       </div>
 
       <div
         ref={listaRef}
-        className={`quiet-scroll mt-3 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5 transition-opacity ${
+        className={`scroll-visible mt-3 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1.5 transition-opacity ${
           paginaQ.isFetching && !carregando ? "opacity-60" : ""
         }`}
         aria-busy={carregando || paginaQ.isFetching}
@@ -311,13 +335,31 @@ export function ParticipacaoView() {
             onRetry={() => paginaQ.refetch()}
           />
         )}
-        {!carregando && !paginaQ.isError && lista.length === 0 && (
-          <EmptyState
-            icon={tipoAtivo === "ideias" ? Lightbulb : MessagesSquare}
-            title="Nenhum item nesta página"
-            description="A lista oficial não retornou itens para esta página. Tente voltar uma página ou atualizar."
-          />
-        )}
+        {!carregando &&
+          !paginaQ.isError &&
+          lista.length === 0 &&
+          (buscaDebounced ? (
+            <EmptyState
+              icon={Search}
+              title={`Nenhum resultado para “${buscaDebounced}”`}
+              description={
+                tipoAtivo === "consultas"
+                  ? "A busca oficial não encontrou consultas com esse número, autor ou ano."
+                  : "A busca oficial não encontrou ideias com esse título."
+              }
+              action={
+                <button type="button" className="btn btn-sm" onClick={() => definirBusca("")}>
+                  Limpar busca
+                </button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={tipoAtivo === "ideias" ? Lightbulb : MessagesSquare}
+              title="Nenhum item nesta página"
+              description="A lista oficial não retornou itens para esta página. Tente voltar uma página ou atualizar."
+            />
+          ))}
         {!carregando &&
           lista.map((item, index) => (
             <EcidadaniaCard

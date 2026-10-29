@@ -29,10 +29,10 @@ export function useEcidadaniaConsultas() {
 }
 
 /** One page (100 items) of the portal's full ideas or consultations listing. */
-export function useEcidadaniaPagina(tipo: EcidadaniaTipo, pagina: number) {
+export function useEcidadaniaPagina(tipo: EcidadaniaTipo, pagina: number, busca = "") {
   return useQuery({
-    queryKey: ["ecidadania-pagina", tipo, pagina],
-    queryFn: () => getEcidadaniaPagina(tipo, pagina),
+    queryKey: ["ecidadania-pagina", tipo, pagina, busca],
+    queryFn: () => getEcidadaniaPagina(tipo, pagina, busca),
     staleTime: STALE,
     placeholderData: keepPreviousData,
   });

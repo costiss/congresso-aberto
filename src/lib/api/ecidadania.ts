@@ -182,6 +182,49 @@ function parseItensConsulta(doc: Document): EcidadaniaItem[] {
   });
 }
 
+const TIPOS_CONSULTA = new Set([
+  "ECD",
+  "EDS",
+  "MPV",
+  "PDL",
+  "PDS",
+  "PEC",
+  "PL",
+  "PLC",
+  "PLP",
+  "PLS",
+  "PLV",
+  "PRS",
+  "SCD",
+  "SDS",
+  "SUG",
+]);
+
+/**
+ * The listing forms accept different search parameters per section. Ideas
+ * search their title; consultations search by proposition number, year or
+ * author. A free text that looks like a proposition code is split into the
+ * portal's `tipo`/`numero`/`ano` fields.
+ */
+function parametrosDeBusca(tipo: EcidadaniaTipo, busca: string): Record<string, string> {
+  const termo = busca.trim();
+  if (!termo) return {};
+  if (tipo === "ideia") return { pesquisa: termo };
+
+  const codigo = /^([A-Za-z]{2,5})\s*(\d{1,6})(?:\s*\/\s*(\d{4}))?$/.exec(termo);
+  const sigla = codigo?.[1].toUpperCase();
+  if (codigo && sigla && TIPOS_CONSULTA.has(sigla)) {
+    return {
+      tipo: sigla,
+      numero: codigo[2],
+      ...(codigo[3] ? { ano: codigo[3] } : {}),
+    };
+  }
+  if (/^(19|20)\d{2}$/.test(termo)) return { ano: termo };
+  if (/^\d{1,6}$/.test(termo)) return { numero: termo };
+  return { nomeAutor: termo };
+}
+
 /**
  * One page of the full portal listing, 100 items at a time. The ideas page
  * (`pesquisaideia`) contains every idea ever submitted; the consultations page
@@ -189,11 +232,16 @@ function parseItensConsulta(doc: Document): EcidadaniaItem[] {
  */
 export async function getEcidadaniaPagina(
   tipo: EcidadaniaTipo,
-  pagina = 1
+  pagina = 1,
+  busca = ""
 ): Promise<EcidadaniaPagina> {
   const alvo = Math.max(1, Math.trunc(pagina) || 1);
   const caminho = tipo === "ideia" ? "pesquisaideia" : "pesquisamateria";
-  const html = await getText(`${ECIDADANIA_BASE}/${caminho}?p=${alvo}`, undefined, 25_000);
+  const params = new URLSearchParams({ p: String(alvo) });
+  for (const [chave, valor] of Object.entries(parametrosDeBusca(tipo, busca))) {
+    params.set(chave, valor);
+  }
+  const html = await getText(`${ECIDADANIA_BASE}/${caminho}?${params}`, undefined, 25_000);
   const doc = new DOMParser().parseFromString(html, "text/html");
 
   return {
