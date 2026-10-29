@@ -25,7 +25,7 @@ function IdeiaMeter({ item }: { item: EcidadaniaItem }) {
         {item.prazo && (
           <span className="inline-flex items-center gap-1 text-fg-5">
             <CalendarClock className="h-3 w-3" />
-            até {item.prazo}
+            {item.aberta === false ? "encerrada em" : "até"} {item.prazo}
           </span>
         )}
       </div>
