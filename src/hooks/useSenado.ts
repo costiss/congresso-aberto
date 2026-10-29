@@ -51,8 +51,8 @@ export function useSenadoVotacoes(intervalo?: Intervalo, enabled = true) {
  * The Senate floor session in progress, refreshed on a timer while it runs.
  *
  * The interval is short only during a session and pauses while the tab is in
- * the background; the proxy caches both upstream paths for 30 s, so all
- * visitors together cost one upstream call per window.
+ * the background; TanStack Query keeps both upstream answers cached in the
+ * browser between polls, so each visitor only hits the API on a refetch.
  */
 export function useSessaoSenado(): SessaoAoVivoResult {
   return useSessao("senado", getSessaoSenado);

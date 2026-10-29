@@ -490,9 +490,8 @@ function normalizar(s: SessaoPlenario): SessaoAoVivo {
  * The Senate floor session in progress, if any.
  *
  * The agenda is one call; the order-paper results are fetched only while a
- * session is running, so an idle day costs a single (cached) request. The
- * server caches both paths briefly, so every visitor shares one upstream call
- * per window instead of one each.
+ * session is running, so an idle day costs a single request. Results stay
+ * cached in the browser between refetches, which keeps the polling load low.
  */
 export async function getSessaoSenado(data: string): Promise<SessaoAoVivo | undefined> {
   const agenda = await getPlenarioAgenda(data);

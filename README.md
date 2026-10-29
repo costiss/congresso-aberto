@@ -121,18 +121,20 @@ value is only written back to the URL when it differs from the screen's default.
 | Câmara dos Deputados | `https://dadosabertos.camara.leg.br/api/v2` | Deputies (513), parties, propositions, tramitações, autores, votações + votos, eventos + pauta. Sends `X-Total-Count`, used for historical counts. The plenary is live when an event reads `Em Andamento`; its order paper (`/eventos/{id}/pauta`) gives each item's `situacaoItem` and, once voted, its `uriVotacao`. |
 | Senado Federal | `https://legis.senado.leg.br/dadosabertos` | Senators (81), senator votes, recent floor votes (`/votacao`) and propositions (`/processo`). The day's plenário is live at `/plenario/agenda/dia/{AAAAMMDD}` (session status) and `/plenario/resultado/{AAAAMMDD}` (each item's result as it is decided). |
 
-Both APIs return `Access-Control-Allow-Origin: *`. The Câmara API rate-limits
-bursts, so the adapter runs its requests through a small concurrency limiter and
-the query client retries with backoff.
+Both APIs normally return `Access-Control-Allow-Origin: *`, so the browser can
+call them directly. Some Câmara nodes intermittently omit the header (the browser
+then reports a network error), so the fetch helper retries bypassing the HTTP
+cache and the query client retries with backoff. The Câmara API also rate-limits
+bursts, so the adapter runs its requests through a small concurrency limiter.
 
 Neither API pushes: "live" means polling. Both floors are polled every 30 s only
 while a session is running (every 90 s otherwise, and never in a background tab),
-and the proxy caches the live paths briefly (Senate plenário 30 s; Câmara order
-paper 30 s, events list 60 s), so every visitor together costs one upstream call
-per window rather than one each. The Câmara names the item on the floor directly
-(`situacaoItem`); the Senate has no such field, so the first undecided item is
-taken as the one under consideration. The nominal roll-call still only arrives
-once the vote is recorded.
+and TanStack Query keeps each answer cached in the browser until its stale time
+expires, so repeated renders and revisits reuse the data instead of fetching
+again. The Câmara names the item on the floor directly (`situacaoItem`); the
+Senate has no such field, so the first undecided item is taken as the one under
+consideration. The nominal roll-call still only arrives once the vote is
+recorded.
 
 The API layer lives in `src/lib/api`:
 
@@ -154,65 +156,39 @@ src/
 └── lib/            api adapters, vote semantics, breakdowns, geo shapes
 ```
 
-## Server (`server/`) and deployment
+## Deployment
 
-One small Go binary serves the built app and proxies the government APIs on
-the same origin (`/api/camara/*`, `/api/senado/*`), so the app works on any
-domain without CORS or a rebuild.
+There is no backend. The production build is a static site: nginx serves the
+files and every visitor's browser calls the government APIs directly. Nothing
+proxies traffic, so the host's IP is never the one talking to the APIs and there
+is no cache or rate-limit state to run.
 
-- **Shared cache** in memory, per path: a recorded roll-call or vote detail
-  6 h, deputies 6 h, propositions 1 h, vote lists 5 min, events 10 min, and the
-  live Senate plenário agenda and results 30 s, and the Câmara order paper 30 s
-  (events list 60 s).
-  Recently expired entries are served at once while a fresh copy is fetched
-  in the background; when an API fails, the last good copy is served for up
-  to 24 h. Size is capped (LRU, 256 MB by default).
-- **Request coalescing**: concurrent identical requests become one upstream call.
-- **Global rate limit per API** (token bucket + concurrency cap): Câmara
-  5 req/s, Senado 2 req/s by default. A 429/503 with `Retry-After` pauses all
-  calls to that API.
-- **Per-visitor limit** (20 req/s, burst 120). The visitor's IP is resolved
-  behind Cloudflare and a reverse proxy: `X-Forwarded-For` is walked only
-  through trusted hops (private networks, Cloudflare ranges) and
-  `CF-Connecting-IP` is used only when the request really came from a
-  Cloudflare edge, so neither header can be forged by hitting the server directly.
-- **Static app**: hashed `/assets/*` cached for a year, `index.html` revalidated,
-  unknown paths fall back to `index.html`, no redirects (so nothing depends on
-  the host name the reverse proxy forwards).
+- **Static app**: hashed `/assets/*` cached for a year, `index.html`
+  revalidated, unknown paths fall back to `index.html` (see
+  `deploy/nginx.conf`).
+- **Client caching**: TanStack Query deduplicates and caches requests in the
+  browser; the Câmara adapter also caps in-flight requests so a burst from one
+  visitor does not trip the API's limiter.
+- **Health check**: the container answers on `/` (there is no `/healthz`).
 
 ```bash
 docker build -t camara .
-docker run -p 8080:8080 camara        # app + /api on http://localhost:8080, /healthz for stats
+docker run -p 8080:8080 camara        # static app on http://localhost:8080
 
-npm run dev:api                       # local development: Go server on :8080
-npm run dev                           # Vite on :5173, forwards /api to it
+npm run dev                           # Vite on :5173, direct to the APIs
 ```
 
 ### Dokploy behind Cloudflare
 
 1. Create an application from this repository with build type **Dockerfile**
-   (`./Dockerfile`); the container listens on `8080` (or `$PORT`).
+   (`./Dockerfile`); the container listens on `8080`.
 2. Add the domain in Dokploy pointing to container port `8080`; enable HTTPS.
 3. In Cloudflare, proxy the DNS record (orange cloud) and use SSL mode
    **Full (strict)**.
 
-No other setting is needed: Traefik's Docker network and Cloudflare's edges are
-trusted by default. Run a single replica (the cache is in memory). Optionally,
-a Cloudflare Cache Rule for `/api/*` that respects origin `Cache-Control`
-moves repeated reads to Cloudflare's edge.
-
-| Variable | Default |
-| --- | --- |
-| `PORT` / `PROXY_ADDR` | `8080` / `:$PORT` |
-| `STATIC_DIR` | empty (the Docker image sets `/web`) |
-| `PROXY_ALLOWED_ORIGINS` | empty: same origin only; list origins to open the API to other sites |
-| `PROXY_TRUSTED_PROXIES` | private ranges (`10/8`, `172.16/12`, `192.168/16`, loopback, `fc00::/7`) |
-| `PROXY_TRUST_CLOUDFLARE` | `true` |
-| `PROXY_CACHE_MAX_MB` / `PROXY_STALE_MAX` | `256` / `24h` |
-| `PROXY_QUEUE_TIMEOUT` / `PROXY_UPSTREAM_TIMEOUT` | `15s` / `20s` |
-| `PROXY_CLIENT_RPS` / `PROXY_CLIENT_BURST` | `20` / `120` |
-| `CAMARA_RPS` / `CAMARA_BURST` / `CAMARA_MAX_CONCURRENT` | `5` / `10` / `4` |
-| `SENADO_RPS` / `SENADO_BURST` / `SENADO_MAX_CONCURRENT` | `2` / `4` / `2` |
+Any number of replicas can run: there is no shared state. Cloudflare's cache
+only covers this site's own files; the API calls go from the visitor's browser
+to the government domains and are not proxied by the container.
 
 ## Getting started
 

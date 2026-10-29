@@ -1,23 +1,14 @@
-# One container: the Go server serves the built SPA and proxies /api with cache and rate limits.
+# Static-only image: nginx serves the built SPA and the browser calls the
+# official open-data APIs directly. There is no backend or proxy to deploy.
 FROM node:24-alpine AS web
 WORKDIR /web
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN VITE_API_PROXY=/api npm run build
+RUN npm run build
 
-FROM golang:1.24-alpine AS server
-WORKDIR /src
-COPY server/go.mod server/go.sum ./
-RUN go mod download
-COPY server/ ./
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /app .
-
-FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=server /app /app
-COPY --from=web /web/dist /web
-ENV STATIC_DIR=/web \
-    PORT=8080
+FROM nginx:alpine
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=web /web/dist /usr/share/nginx/html
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s CMD ["/app", "healthcheck"]
-ENTRYPOINT ["/app"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s CMD wget -q --spider http://127.0.0.1:8080/ || exit 1

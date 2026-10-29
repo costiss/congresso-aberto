@@ -9,8 +9,8 @@ type Buscar = (data: string) => Promise<SessaoAoVivo | undefined>;
 /**
  * Shared polling for a house's live floor session: short interval while a
  * session runs, longer otherwise, and paused while the tab is in the
- * background. The proxy caches the upstream paths, so all visitors together
- * cost one call per window.
+ * background. TanStack Query caches the result in the browser, so a window
+ * does not refetch while it is still fresh.
  */
 export function useSessao(casa: "camara" | "senado", buscar: Buscar): SessaoAoVivoResult {
   const [data] = useState(() => isoDate(new Date()));

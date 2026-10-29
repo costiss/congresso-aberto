@@ -20,13 +20,16 @@ import type {
 } from "../types";
 import { itemAoVivo } from "../aoVivo";
 import { VotoClassifier } from "../votos";
-import { CAMARA_BASE, VIA_PROXY } from "./config";
+import { CAMARA_BASE } from "./config";
 import { createLimiter, getJson, getPaged, hasRel, type PagedResult } from "./http";
 
 const BASE = CAMARA_BASE;
 
-/** Cap concurrent Câmara requests to stay under its rate limiter. */
-const limit = createLimiter(VIA_PROXY ? 8 : 3);
+/**
+ * Cap concurrent Câmara requests to stay under its rate limiter. Each browser
+ * has its own budget, so the direct limit stays deliberately small.
+ */
+const limit = createLimiter(3);
 const getApi = <T>(url: string, init?: RequestInit) => limit(() => getJson<T>(url, init));
 const getApiPaged = <T>(url: string) => limit(() => getPaged<T>(url));
 
@@ -549,8 +552,8 @@ function normalizarSessaoCamara(e: Evento, pauta: RawPautaItem[]): SessaoAoVivo 
  * The Câmara plenary session in progress today, if any.
  *
  * The events list is one call; the order paper is fetched only while a session
- * runs, and the proxy caches both paths briefly so every visitor shares one
- * upstream call per window.
+ * runs. TanStack Query keeps the answer warm in the browser between tabs and
+ * remounts, so an idle day costs no more than the poll interval allows.
  */
 export async function getSessaoCamara(data: string): Promise<SessaoAoVivo | undefined> {
   const eventos = await getEventos({ dataInicio: data, dataFim: data, ordem: "ASC" });
