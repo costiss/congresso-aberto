@@ -129,7 +129,7 @@ value is only written back to the URL when it differs from the screen's default.
 | --- | --- | --- |
 | Câmara dos Deputados | `https://dadosabertos.camara.leg.br/api/v2` | Deputies (513), parties, propositions, tramitações, autores, votações + votos, eventos + pauta. Sends `X-Total-Count`, used for historical counts. The plenary is live when an event reads `Em Andamento`; its order paper (`/eventos/{id}/pauta`) gives each item's `situacaoItem` and, once voted, its `uriVotacao`. |
 | Senado Federal | `https://legis.senado.leg.br/dadosabertos` | Senators (81), senator votes, recent floor votes (`/votacao`), propositions (`/processo`) and the rapporteur of a matter (`/processo/relatoria?codigoMateria=…`). The day's plenário is live at `/plenario/agenda/dia/{AAAAMMDD}` (session status) and `/plenario/resultado/{AAAAMMDD}` (each item's result as it is decided). |
-| e-Cidadania | `https://www12.senado.leg.br/ecidadania` (via `/api/ecidadania` on the same origin) | Popular ideas and public consultations (`restcolecaomaisideia`, `restcolecaomaismateria`), their detail pages, and the official links. The portal sends no CORS headers, so nginx proxies `/api/ecidadania/*`; Vite mirrors that proxy in development. |
+| e-Cidadania | `https://www12.senado.leg.br/ecidadania` (via `/api/ecidadania` on the same origin) | Popular ideas and public consultations (`restcolecaomaisideia`, `restcolecaomaismateria`), their detail pages, and the official links. The portal sends no CORS headers, so the app's nginx forwards `/api/ecidadania/*` to a host-network sidecar; Vite mirrors the proxy in development. |
 
 The consultation's rapporteur is not in the e-Cidadania payload; it comes from
 the Senate open-data `/processo/relatoria?codigoMateria=…`. A matter with no
@@ -178,31 +178,41 @@ src/
 There is no application backend. The production build is a static site: nginx
 serves the files and every visitor's browser calls the Câmara and Senate APIs
 directly. The one exception is **e-Cidadania**, which sends no CORS headers:
-nginx reverse-proxies `/api/ecidadania/*` to the portal and keeps a short
-in-memory cache, so the server IP is never hammering the portal.
+the app's nginx forwards `/api/ecidadania/*` to a small **host-network nginx
+sidecar** that talks to the portal and keeps a short in-memory cache.
 
 - **Static app**: hashed `/assets/*` cached for a year, `index.html`
   revalidated, unknown paths fall back to `index.html` (see
   `deploy/nginx.conf`).
-- **e-Cidadania proxy**: `/api/ecidadania/*` is proxied to
-  `www12.senado.leg.br/ecidadania`. The cache lives in `/dev/shm` (tmpfs) and
-  holds each URL for five minutes; `proxy_cache_lock` collapses concurrent
-  misses into one upstream call, `proxy_cache_use_stale` serves the last good
-  copy when the portal is slow, and the upstream block caps the proxy at two
-  concurrent connections. Per-visitor limits (5 req/s, 8 concurrent, keyed by
-  `CF-Connecting-IP` behind Cloudflare) keep one client from abusing the proxy.
-  Vite mirrors the same proxy in development.
+- **e-Cidadania sidecar**: the app's nginx forwards `/api/ecidadania/*` to
+  `192.168.1.2:8084`, where `deploy/ecidadania-proxy.conf` runs. The sidecar
+  runs on the host network because the portal's WAF blocks nginx requests
+  coming from Docker's overlay network. It holds each URL for five minutes in
+  a `/dev/shm` cache, collapses concurrent misses, caps the portal at two
+  concurrent connections, and serves the last good copy when the portal is
+  slow. The app's nginx applies the per-visitor limits (5 req/s, 8 concurrent,
+  keyed by `CF-Connecting-IP` behind Cloudflare). Vite mirrors the proxy in
+  development.
 - **Client caching**: TanStack Query deduplicates and caches requests in the
   browser; the Câmara adapter also caps in-flight requests so a burst from one
   visitor does not trip the API's limiter.
 - **Health check**: the container answers on `/` (there is no `/healthz`).
 
 ```bash
+# App (static site + proxy to the sidecar)
 docker build -t camara .
-docker run -p 8080:8080 camara        # static app + e-Cidadania proxy
+docker run -p 8080:8080 camara
+
+# e-Cidadania sidecar (host network, port 8084)
+docker build -f deploy/ecidadania-proxy.Dockerfile -t congresso-ecidadania-proxy .
+docker run -d --name ecidadania-proxy --network host --restart unless-stopped congresso-ecidadania-proxy
 
 npm run dev                           # Vite on :5173, with the e-Cidadania dev proxy
 ```
+
+The app's `proxy_pass` points at `192.168.1.2:8084`; change that address in
+`deploy/nginx.conf` if the host's LAN address changes. Firewall port 8084 so
+only the host/Docker network can reach the sidecar.
 
 ### Dokploy behind Cloudflare
 
@@ -211,11 +221,15 @@ npm run dev                           # Vite on :5173, with the e-Cidadania dev 
 2. Add the domain in Dokploy pointing to container port `8080`; enable HTTPS.
 3. In Cloudflare, proxy the DNS record (orange cloud) and use SSL mode
    **Full (strict)**.
+4. Create a second Dokploy application from `deploy/ecidadania-proxy.Dockerfile`
+   with **host network** enabled. It listens on `8084`; the app's nginx
+   reaches it at the host's LAN address.
 
-Any number of replicas can run: the cache is per-replica and is only a cache,
-not shared state. Cloudflare's cache covers this site's own files; the Câmara
-and Senate API calls go from the visitor's browser to the government domains,
-and only e-Cidadania passes through the container's nginx proxy.
+The app can run multiple replicas; they all point at the single sidecar. The
+cache is per-sidecar and is only a cache, not shared state. Cloudflare's cache
+covers this site's own files; the Câmara and Senate API calls go from the
+visitor's browser to the government domains, and only e-Cidadania passes
+through the sidecar.
 
 ## Getting started
 
@@ -228,4 +242,5 @@ npm run lint
 
 No API keys are required. nginx (or Vite in development) proxies only
 e-Cidadania, which does not send CORS headers; every other call goes from the
-browser to the official open-data APIs.
+browser to the official open-data APIs. The production proxy to e-Cidadania is
+the host-network sidecar described above.
