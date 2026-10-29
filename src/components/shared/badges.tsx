@@ -3,10 +3,13 @@ import {
   CheckCircle2,
   Clock,
   HelpCircle,
+  Info,
   XCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { badgeVariants, Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EXPLICACAO_NOMINAL } from "@/lib/explicacao";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import { partyColor, statusTone, withAlpha } from "@/lib/parties";
@@ -72,6 +75,33 @@ export function AprovacaoBadge({
       <Clock className="h-3 w-3" />
       Em votação
     </Badge>
+  );
+}
+
+/**
+ * Marks a vote whose individual ballots were recorded. The badge itself is the
+ * hover/focus trigger for the explanation, so the jargon is one gesture away
+ * on a pointer, a keyboard and a screen reader alike.
+ */
+export function VotacaoNominalBadge({ className }: { className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="Votação nominal — o que é?"
+          className={cn(
+            badgeVariants({ tone: "neutral" }),
+            "cursor-help py-1.5 text-[12px] transition-colors hover:border-line-3 hover:text-fg",
+            className
+          )}
+        >
+          Votação nominal
+          <Info className="h-3 w-3 text-fg-4" aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{EXPLICACAO_NOMINAL}</TooltipContent>
+    </Tooltip>
   );
 }
 

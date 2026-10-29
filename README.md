@@ -73,7 +73,7 @@ Defaults are left out of the URL.
 
 | Route | Parameters |
 | --- | --- |
-| `#/votacoes/<id>` | `uf`, `modo=plenario`, `mapa=1` (map expanded), `nominal=0` (feed shows every vote), `chamada=1` (roll-call open), `voto` (`sim`, `nao`, …), `nome`, `data` (Senate session date) |
+| `#/votacoes/<id>` | `uf`, `modo=plenario`, `mapa=1` (map expanded), `nominal=1` (feed keeps only nominal votes), `chamada=1` (roll-call open), `voto` (`sim`, `nao`, …), `nome`, `data` (Senate session date) |
 | `#/inspecionar/<id>` | `voto`, `partido`, `uf`, `nome`, `contra=1` (voted against the party), `ordem=partido\|uf\|voto`, `grupo=estado`, `secao=votos\|grupos` (scrolls to that section), `data` |
 | `#/parlamentar/<id>` | `periodo=30d\|90d\|<ano>`, `merito=0` (include procedural votes), `filtro=partido\|governo\|ausencias`, `q`; with `aba=propostas`: `tipo`, `ano`, `fase`, `busca`, `pagina` |
 | `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |

@@ -133,8 +133,12 @@ function passoReal(hoje: { situacao?: string; norma?: string; vetos?: "parcial" 
   return null;
 }
 
+/** Also used by the "Votação nominal" badge in the vote header. */
+export const EXPLICACAO_NOMINAL =
+  "Cada parlamentar registra o voto no painel eletrônico, e dá para saber como cada um votou.";
+
 export const GLOSSARIO: { termo: string; explica: string }[] = [
-  { termo: "Votação nominal", explica: "Cada parlamentar registra o voto no painel eletrônico, e dá para saber como cada um votou." },
+  { termo: "Votação nominal", explica: EXPLICACAO_NOMINAL },
   { termo: "Votação simbólica", explica: "Os parlamentares se manifestam em conjunto e a Presidência anuncia o resultado, sem registro individual." },
   { termo: "Abstenção", explica: "O parlamentar está presente e registra que não vota nem Sim nem Não." },
   { termo: "Obstrução", explica: "Estratégia para atrasar ou impedir a votação; quem obstrui não conta para o quórum." },

@@ -33,7 +33,7 @@ export function VotacoesView({ votacaoId }: { votacaoId?: string }) {
   );
 
   const [uf, selectUf] = useQueryParam("uf");
-  const [soNominais, setSoNominais] = useNominal(true);
+  const [soNominais, setSoNominais] = useNominal(false);
   // Carry an explicit filter choice through this view's own links (steps, feed,
   // dock), so it survives a click even where storage is unavailable.
   const nominalParam = query.get("nominal");
