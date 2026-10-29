@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { BarRowsSkeleton } from "@/components/hud/skeletons";
-import { ErrorState } from "@/components/shared";
+import { ErrorState, PeriodoPicker } from "@/components/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { casaDoParlamentar, useHistoricoParlamentar, useParlamentar } from "@/hooks/useParlamentar";
 import { router, useQueryEnum, useQueryParam } from "@/hooks/useUi";
@@ -86,6 +86,7 @@ export function ParlamentarView({ id }: { id: string }) {
                   </button>
                 ))}
               </div>
+              <PeriodoPicker valor={periodo} onChange={setPeriodo} />
               <label className="inline-flex cursor-pointer items-center gap-2 text-[12px] text-fg-3">
                 <input type="checkbox" className="accent-[var(--color-fg)]" checked={soMerito} onChange={(e) => setMerito(e.target.checked ? "1" : "0")} />
                 Só votações de conteúdo (sem requerimentos e urgências)

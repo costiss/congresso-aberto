@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Default calendar skin sits in the base layer so the app's component styles win. */
+@import "react-day-picker/style.css" layer(base);
 
 /* Tokens mirror seuimposto.com's HUD: warm near-black, glass cards, hairlines. */
 @theme {
@@ -561,6 +563,102 @@
     border-color: var(--color-line-3);
   }
 
+  /* Calendar (react-day-picker) ------------------------------------- */
+  .rdp-compact {
+    --rdp-accent-color: var(--color-fg);
+    --rdp-accent-background-color: rgba(250, 250, 249, 0.12);
+    --rdp-day-height: 34px;
+    --rdp-day-width: 34px;
+    --rdp-day_button-height: 32px;
+    --rdp-day_button-width: 32px;
+    --rdp-day_button-border-radius: 8px;
+    --rdp-day_button-border: 1px solid transparent;
+    --rdp-selected-border: 1px solid var(--color-fg);
+    --rdp-today-color: var(--color-blue);
+    --rdp-outside-opacity: 0.4;
+    --rdp-range_middle-background-color: rgba(250, 250, 249, 0.09);
+    --rdp-range_middle-color: var(--color-fg);
+    --rdp-range_start-color: var(--color-bg);
+    --rdp-range_end-color: var(--color-bg);
+    --rdp-range_start-date-background-color: var(--color-fg);
+    --rdp-range_end-date-background-color: var(--color-fg);
+    --rdp-nav-height: 34px;
+    --rdp-nav_button-width: 28px;
+    --rdp-nav_button-height: 28px;
+    --rdp-weekday-padding: 4px 0;
+    --rdp-weekday-opacity: 1;
+    padding: 12px 14px 10px;
+    font-size: 12px;
+    user-select: none;
+  }
+  .rdp-compact .rdp-month_caption {
+    height: 34px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .rdp-compact .rdp-caption_label {
+    color: var(--color-fg);
+  }
+  .rdp-compact .rdp-weekday {
+    color: var(--color-fg-4);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .rdp-compact .rdp-day_button {
+    color: var(--color-fg-2);
+    transition: background-color 120ms var(--ease), color 120ms var(--ease);
+  }
+  .rdp-compact .rdp-day_button:hover {
+    background: rgba(250, 250, 249, 0.08);
+    color: var(--color-fg);
+  }
+  .rdp-compact .rdp-selected {
+    font-size: inherit;
+    font-weight: 500;
+  }
+  .rdp-compact .rdp-range_start .rdp-day_button,
+  .rdp-compact .rdp-range_end .rdp-day_button {
+    background: var(--color-fg);
+    color: var(--color-bg);
+    border-color: var(--color-fg);
+  }
+  .rdp-compact .rdp-range_start,
+  .rdp-compact .rdp-range_end {
+    background: var(--rdp-range_middle-background-color);
+  }
+  .rdp-compact .rdp-range_start {
+    border-radius: 8px 0 0 8px;
+  }
+  .rdp-compact .rdp-range_end {
+    border-radius: 0 8px 8px 0;
+  }
+  .rdp-compact .rdp-range_start.rdp-range_end {
+    border-radius: 8px;
+    background: transparent;
+  }
+  .rdp-compact .rdp-today:not(.rdp-outside) {
+    color: var(--color-blue);
+    font-weight: 600;
+  }
+  .rdp-compact .rdp-button_previous,
+  .rdp-compact .rdp-button_next {
+    border-radius: 8px;
+    transition: background-color 120ms var(--ease);
+  }
+  .rdp-compact .rdp-button_previous:hover,
+  .rdp-compact .rdp-button_next:hover {
+    background: rgba(250, 250, 249, 0.08);
+  }
+  .rdp-compact .rdp-chevron {
+    fill: var(--color-fg-3);
+  }
+  .rdp-compact .rdp-button_previous:hover .rdp-chevron,
+  .rdp-compact .rdp-button_next:hover .rdp-chevron {
+    fill: var(--color-fg);
+  }
+
   /* Touch: the dense HUD controls are built for a pointer. On a coarse pointer
      (phones, tablets) raise them to a comfortable hit area (WCAG 2.5.5). */
   @media (pointer: coarse) {
@@ -586,6 +684,12 @@
     }
     .field {
       height: 44px;
+    }
+    .rdp-compact {
+      --rdp-day-height: 36px;
+      --rdp-day-width: 36px;
+      --rdp-day_button-height: 34px;
+      --rdp-day_button-width: 34px;
     }
   }
 

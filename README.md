@@ -49,8 +49,8 @@ Brazil map, Faustina serif figures and a timeline dock at the bottom.
   status (Senado) and text, and a "Ver votação" button that opens the bill's
   main vote inside the app.
 - **Lista** (`#/lista`) — every floor deliberation of both houses in a period
-  (30/90 days or a year), faceted by result and bill type, with search and
-  paging. A row opens the Votações panel on that vote. While a floor is in
+  (30/90 days, a year or a custom date range picked on a calendar), faceted by
+  result and bill type, with search and paging. A row opens the Votações panel on that vote. While a floor is in
   session, the items still to be decided head the list as its first rows,
   stamped **ao vivo**, ahead of the recorded deliberations.
 - **Agenda** — upcoming and past Câmara events with their pauta. While either
@@ -75,8 +75,8 @@ Defaults are left out of the URL.
 | --- | --- |
 | `#/votacoes/<id>` | `uf`, `modo=plenario`, `mapa=1` (map expanded), `nominal=1` (feed keeps only nominal votes), `chamada=1` (roll-call open), `voto` (`sim`, `nao`, …), `nome`, `data` (Senate session date) |
 | `#/inspecionar/<id>` | `voto`, `partido`, `uf`, `nome`, `contra=1` (voted against the party), `ordem=partido\|uf\|voto`, `grupo=estado`, `secao=votos\|grupos` (scrolls to that section), `data` |
-| `#/parlamentar/<id>` | `periodo=30d\|90d\|<ano>`, `merito=0` (include procedural votes), `filtro=partido\|governo\|ausencias`, `q`; with `aba=propostas`: `tipo`, `ano`, `fase`, `busca`, `pagina` |
-| `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |
+| `#/parlamentar/<id>` | `periodo=30d\|90d\|<ano>\|<ini>..<fim>`, `merito=0` (include procedural votes), `filtro=partido\|governo\|ausencias`, `q`; with `aba=propostas`: `tipo`, `ano`, `fase`, `busca`, `pagina` |
+| `#/lista` | `casa=camara\|senado`, `periodo=30d\|90d\|<ano>\|<ini>..<fim>`, `tipo` (`PEC`, `PL`, …), `resultado=aprovada\|rejeitada\|outros`, `nominal=1`, `q`, `ordem=antigas`, `pagina` |
 | `#/camara`, `#/senado` | `uf`, `partido`, `q` |
 | `#/agenda` | `periodo=realizados`, `tipo=plenario\|comissoes` |
 

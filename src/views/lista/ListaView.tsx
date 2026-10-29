@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { ErrorState, LoadingRows } from "@/components/shared";
+import { ErrorState, LoadingRows, PeriodoPicker } from "@/components/shared";
 import { useItensAoVivo } from "@/hooks/useAoVivo";
 import { useDeliberacoes } from "@/hooks/useDeliberacoes";
 import { POR_PAGINA } from "@/lib/filtroVotacoes";
@@ -64,6 +64,7 @@ export function ListaView() {
               </button>
             ))}
           </div>
+          <PeriodoPicker valor={filtro.periodo} onChange={(valor) => definir({ periodo: valor })} />
           <label className="relative ml-auto min-w-[200px] flex-1 sm:max-w-[300px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-5" />
             <input
