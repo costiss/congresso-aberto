@@ -1,0 +1,7 @@
+services:
+  ecidadania-proxy:
+    build:
+      context: ..
+      dockerfile: deploy/ecidadania-proxy.Dockerfile
+    network_mode: host
+    restart: unless-stopped

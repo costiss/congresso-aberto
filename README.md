@@ -221,9 +221,16 @@ only the host/Docker network can reach the sidecar.
 2. Add the domain in Dokploy pointing to container port `8080`; enable HTTPS.
 3. In Cloudflare, proxy the DNS record (orange cloud) and use SSL mode
    **Full (strict)**.
-4. Create a second Dokploy application from `deploy/ecidadania-proxy.Dockerfile`
-   with **host network** enabled. It listens on `8084`; the app's nginx
-   reaches it at the host's LAN address.
+4. Create a **Compose** service in the same project/environment for the
+   e-Cidadania sidecar:
+   - Source: this GitHub repo, branch `main`.
+   - Compose path: `deploy/dokploy-compose.yml`.
+   - Compose type: `docker-compose` (not `stack`).
+   - Enable auto-deploy.
+
+   The compose file builds `deploy/ecidadania-proxy.Dockerfile` and runs it
+   with `network_mode: host`, so it listens on the host's `8084`. The app's
+   nginx reaches it at the host's LAN address.
 
 The app can run multiple replicas; they all point at the single sidecar. The
 cache is per-sidecar and is only a cache, not shared state. Cloudflare's cache
