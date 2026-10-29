@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { CodigoProposta, TextoOficial, Veredito } from "@/components/hud/proposta";
-import { VotacaoNominalBadge } from "@/components/shared/badges";
+import { ModoVotacaoBadge } from "@/components/shared/badges";
 import { inspecaoHref } from "@/hooks/useUi";
 import { formatNumber, formatQuando } from "@/lib/format";
 import { lerVotacao } from "@/lib/linguagem";
@@ -59,7 +59,7 @@ export function VoteHero({ votacao, tally, onOpenRollCall }: {
           <p className="mt-0.5 text-[12px] text-fg-4">{formatQuando(votacao.dataHora ?? votacao.data)}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {votacao.nominal && !votacao.secreta && <VotacaoNominalBadge />}
+          <ModoVotacaoBadge votacao={votacao} />
           <Veredito votacao={votacao} destaque className="text-[14px]" />
         </div>
       </div>

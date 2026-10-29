@@ -133,13 +133,18 @@ function passoReal(hoje: { situacao?: string; norma?: string; vetos?: "parcial" 
   return null;
 }
 
-/** Also used by the "Votação nominal" badge in the vote header. */
+/** Also used by the vote-mode badge in the vote header. */
 export const EXPLICACAO_NOMINAL =
   "Cada parlamentar registra o voto no painel eletrônico, e dá para saber como cada um votou.";
+export const EXPLICACAO_SIMBOLICA =
+  "Os parlamentares se manifestam em conjunto e a Presidência anuncia o resultado, sem registro individual.";
+export const EXPLICACAO_SECRETA =
+  "O Senado divulga quem votou, mas não o voto de cada senador.";
 
 export const GLOSSARIO: { termo: string; explica: string }[] = [
   { termo: "Votação nominal", explica: EXPLICACAO_NOMINAL },
-  { termo: "Votação simbólica", explica: "Os parlamentares se manifestam em conjunto e a Presidência anuncia o resultado, sem registro individual." },
+  { termo: "Votação simbólica", explica: EXPLICACAO_SIMBOLICA },
+  { termo: "Votação secreta", explica: EXPLICACAO_SECRETA },
   { termo: "Abstenção", explica: "O parlamentar está presente e registra que não vota nem Sim nem Não." },
   { termo: "Obstrução", explica: "Estratégia para atrasar ou impedir a votação; quem obstrui não conta para o quórum." },
   { termo: "Presidente (Art. 17)", explica: "Quem preside a sessão normalmente não vota, exceto em casos de empate." },
