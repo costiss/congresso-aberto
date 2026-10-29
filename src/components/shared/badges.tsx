@@ -3,14 +3,17 @@ import {
   CheckCircle2,
   Clock,
   HelpCircle,
+  Info,
   XCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { badgeVariants, Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EXPLICACAO_NOMINAL, EXPLICACAO_SECRETA, EXPLICACAO_SIMBOLICA } from "@/lib/explicacao";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import { partyColor, statusTone, withAlpha } from "@/lib/parties";
-import type { StatusTone } from "@/lib/types";
+import type { StatusTone, Votacao } from "@/lib/types";
 
 const TONE_ICON = {
   success: CheckCircle2,
@@ -73,6 +76,52 @@ export function AprovacaoBadge({
       Em votação
     </Badge>
   );
+}
+
+const MODOS_VOTACAO = {
+  nominal: { rotulo: "Votação nominal", explica: EXPLICACAO_NOMINAL },
+  simbolica: { rotulo: "Votação simbólica", explica: EXPLICACAO_SIMBOLICA },
+  secreta: { rotulo: "Votação secreta", explica: EXPLICACAO_SECRETA },
+} as const;
+
+function BadgeComAjuda({ rotulo, explica, className }: {
+  rotulo: string;
+  explica: string;
+  className?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${rotulo} — o que é?`}
+          className={cn(
+            badgeVariants({ tone: "neutral" }),
+            "cursor-help py-1.5 text-[12px] transition-colors hover:border-line-3 hover:text-fg",
+            className
+          )}
+        >
+          {rotulo}
+          <Info className="h-3 w-3 text-fg-4" aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{explica}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * How the ballots were recorded: nominal (each vote is on the record),
+ * simbólica (no individual record) or secreta (who voted is known, the vote is
+ * not). Always renders one of the three, so every vote header names its mode.
+ */
+export function ModoVotacaoBadge({ votacao, className }: {
+  votacao: Pick<Votacao, "nominal" | "secreta">;
+  className?: string;
+}) {
+  const modo = votacao.secreta ? "secreta" : votacao.nominal ? "nominal" : "simbolica";
+  const { rotulo, explica } = MODOS_VOTACAO[modo];
+  return <BadgeComAjuda rotulo={rotulo} explica={explica} className={className} />;
 }
 
 export function PartyTag({
